@@ -67,97 +67,139 @@ export function dateShortDisplay(date?: Date) {
 export async function processTsbs(make: string, model?: string) {
   const dataStore = readDatabase();
   const records = await readTsbFiles(dataStore, make);
-  const { tsbs, newTsbsForModel, newTsbsForMake } = await getTsbs(
-    dataStore,
-    records,
-    model,
-  );
+  const tsbs = await getTsbs(dataStore, records, model);
 
+  let modelCount = 0;
   let year = 0;
-  let writer: undefined | ReturnType<typeof createOutputWriter> = undefined;
-  for (const tsb of tsbs.sort((a, b) =>
-    a.manufacturerDate.localeCompare(b.manufacturerDate),
-  )) {
+  let forumWriter: undefined | ReturnType<typeof createOutputWriter> =
+    undefined;
+  for (const tsb of tsbs
+    .filter((t) => t.matchingModel)
+    .sort((a, b) => a.manufacturerDate.localeCompare(b.manufacturerDate))) {
+    modelCount++;
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??
       new Date();
     const thisYear = date.getFullYear();
     if (thisYear > year) {
-      await writer?.end();
-      writer = createOutputWriter(make, model ?? 'ALL', `${thisYear}.txt`);
-      writer.writeLine(`[B][SIZE="5"]${thisYear}[/SIZE][/B]`);
-      writer.writeLine('');
+      await forumWriter?.end();
+      forumWriter = createOutputWriter(make, model ?? 'ALL', `${thisYear}.txt`);
+      forumWriter.writeLine(`[B][SIZE="5"]${thisYear}[/SIZE][/B]`);
+      forumWriter.writeLine('');
       year = thisYear;
     }
-    if (writer) {
-      writeTsbBlock(writer, tsb, date, model);
+    if (forumWriter) {
+      writeForumEntry(forumWriter, tsb, date, model);
     }
   }
-  await writer?.end();
+  await forumWriter?.end();
 
   const recentWriter = createOutputWriter(make, model ?? 'ALL', 'RECENT.txt');
   const newWriter = createOutputWriter(make, model ?? 'ALL', 'NEW.txt');
   let recentCount = 0;
-  for (const tsb of tsbs.sort((a, b) =>
-    b.manufacturerDate.localeCompare(a.manufacturerDate),
-  )) {
+  for (const tsb of tsbs
+    .filter((t) => t.matchingModel)
+    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
     recentCount++;
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??
       new Date();
     if (recentCount <= 20) {
-      writeTsbBlock(recentWriter, tsb, date, model);
+      writeForumEntry(recentWriter, tsb, date, model);
     }
-    if (newTsbsForModel.includes(tsb.tsbID ?? tsb.nhtsaID)) {
-      writeTsbBlock(newWriter, tsb, date, model);
+    if (tsb.newData) {
+      writeForumEntry(newWriter, tsb, date, model);
     }
   }
   await recentWriter.end();
   await newWriter.end();
 
   // eslint-disable-next-line no-console
-  console.log(`Wrote ${tsbs.length} TSBs for ${make} ${model}`);
+  console.log(`Wrote ${modelCount} TSBs for ${make} ${model}`);
   await saveDatabase(dataStore);
 
-  if (newTsbsForModel.length > 0) {
+  const emailModelList: string[] = [];
+  const emailMakeList: string[] = [];
+  for (const tsb of tsbs
+    .filter(
+      (t) => t.newData && t.manufacturerDate.localeCompare('20250701') > 0,
+    )
+    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
+    const date =
+      parseTsbDate(tsb.manufacturerDate) ??
+      parseTsbDate(tsb.nhtsaDate) ??
+      new Date();
+    addEmailEntry(
+      tsb.matchingModel ? emailModelList : emailMakeList,
+      tsb,
+      date,
+    );
+  }
+
+  if (emailMakeList.length > 0 || emailModelList.length > 0) {
     // eslint-disable-next-line no-console
-    console.log('Sending new TSB email notification for model.');
+    console.log(
+      `Sending new TSB email notification for ${emailModelList.length} model and ${emailMakeList.length} make updates.`,
+    );
+    let bodyText = '';
+    if (emailModelList.length > 0) {
+      bodyText += `New or updated TSBs found for ${make} ${model}:\n`;
+      for (const item of emailModelList) {
+        bodyText += item;
+      }
+    }
+    if (emailMakeList.length > 0) {
+      bodyText += `\n\nNew or updated TSBs found for ${make}:\n`;
+      for (const item of emailMakeList) {
+        bodyText += item;
+      }
+    }
     await sendMessage({
       subject: `New TSBs for ${make} ${model}`,
-      bodyText: `New or updated TSBs found for ${make} ${model}: ${newTsbsForModel}\nNew TSBs found for ${make}: ${newTsbsForMake}`,
-    });
-  } else if (newTsbsForMake.length > 0) {
-    // eslint-disable-next-line no-console
-    console.log('Sending new TSB email notification for make.');
-    await sendMessage({
-      subject: `New TSBs for ${make}`,
-      bodyText: `New TSBs found for ${make}: ${newTsbsForMake}`,
+      bodyText,
     });
   }
 }
 
-const writeTsbBlock = (
+const recallDetails = (tsb: Tsb) => {
+  let details = '';
+  if (tsb.potentialNumberAffected) {
+    details += ` - Affecting ${tsb.potentialNumberAffected} total vehicles`;
+  }
+  if (tsb.beginManufacture && tsb.endManufacture) {
+    details += ` built between ${dateShortDisplay(parseTsbDate(tsb.beginManufacture))} and ${dateShortDisplay(parseTsbDate(tsb.endManufacture))}`;
+  } else if (tsb.beginManufacture) {
+    details += ` built after ${dateShortDisplay(parseTsbDate(tsb.beginManufacture))}`;
+  } else if (tsb.endManufacture) {
+    details += ` built up to ${dateShortDisplay(parseTsbDate(tsb.endManufacture))}`;
+  }
+  return details;
+};
+
+const addEmailEntry = (entries: string[], tsb: Tsb, date: Date) => {
+  let entry = '';
+  entry += `${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)} (${dateShortDisplay(date)})\n`;
+  entry += `https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}\n`;
+  for (const tsbModel of tsb.models) {
+    entry += `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${recallDetails(tsb)}\n`;
+  }
+  entry += `${tsb.component}\n`;
+  entry += `${tsb.summary}\n`;
+  for (const att of tsb.files) {
+    entry += `${att.url}\n`;
+  }
+  entry += `\n`;
+  entries.push(entry);
+};
+
+const writeForumEntry = (
   writer: ReturnType<typeof createOutputWriter>,
   tsb: Tsb,
   date: Date,
   model?: string,
 ) => {
-  const recallDetails = () => {
-    let details = '';
-    if (tsb.potentialNumberAffected) {
-      details += ` - Affecting ${tsb.potentialNumberAffected} total vehicles`;
-    }
-    if (tsb.beginManufacture && tsb.endManufacture) {
-      details += ` built between ${dateShortDisplay(parseTsbDate(tsb.beginManufacture))} and ${dateShortDisplay(parseTsbDate(tsb.endManufacture))}`;
-    } else if (tsb.beginManufacture) {
-      details += ` built after ${dateShortDisplay(parseTsbDate(tsb.beginManufacture))}`;
-    } else if (tsb.endManufacture) {
-      details += ` built up to ${dateShortDisplay(parseTsbDate(tsb.endManufacture))}`;
-    }
-    return details;
-  };
   writer.writeLine(
     `[URL="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}"][B]${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}[/B][/URL] (${dateShortDisplay(date)})`,
   );
@@ -166,7 +208,7 @@ const writeTsbBlock = (
       continue;
     }
     writer.writeLine(
-      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${recallDetails()}`,
+      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${recallDetails(tsb)}`,
     );
   }
   writer.writeLine(tsb.component.replace(/\:/g, ': '));

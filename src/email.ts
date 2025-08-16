@@ -16,7 +16,11 @@ const emailConfig = {
 
 export function sendMessage(message: MailMessage): Promise<void> {
   if (!emailConfig.to || !emailConfig.username || !emailConfig.password) {
-    return Promise.reject(new Error('The email configuration is incomplete'));
+    // eslint-disable-next-line no-console
+    console.warn(
+      `EMAIL SERVER NOT CONFIGURED.\nSUBJECT: ${message.subject}\n\n${message.bodyText}`,
+    );
+    return Promise.resolve();
   }
   const transport = nodemailer.createTransport({
     host: emailConfig.smtpHost,

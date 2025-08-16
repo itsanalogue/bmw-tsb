@@ -1,6 +1,19 @@
 import path from 'path';
 import { readJson, writeJson } from './storage.js';
-import { type TsbDataStore } from './tsb.js';
+export interface TsbDataStore {
+  sources: {
+    [key: string]: {
+      fileBaseName: string;
+      type: 'tsb' | 'recall';
+      active: boolean;
+      cacheDate?: Date;
+    };
+  };
+  files: { [key: string]: { fileName: string; url: string }[] };
+  tsbDates: { [id: string]: string };
+  //deprecated
+  tsbIds?: string[];
+}
 
 const dataStorePath = () => {
   const dataDir = path.resolve(new URL('../data', import.meta.url).pathname);
@@ -12,8 +25,12 @@ export const readDatabase = () => {
   const dataStore = readJson<TsbDataStore>(dataStorePath(), {
     sources: {},
     files: {},
-    tsbIds: [],
+    tsbDates: {},
   });
+  delete dataStore.tsbIds;
+  if (!dataStore.tsbDates) {
+    dataStore.tsbDates = {};
+  }
   return dataStore;
 };
 

@@ -4,6 +4,7 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import readline from 'readline';
 import { readJson, writeJson } from './storage.js';
+import type { TsbDataStore } from './database.js';
 
 const TSB_HEADERS = [
   'nhtsaID',
@@ -73,20 +74,6 @@ const TSB_SOURCES: TsbDataStore['sources'][0][] = [
     cacheDate: undefined,
   },
 ];
-
-export interface TsbDataStore {
-  sources: {
-    [key: string]: {
-      fileBaseName: string;
-      type: 'tsb' | 'recall';
-      active: boolean;
-      cacheDate?: Date;
-    };
-  };
-  files: { [key: string]: { fileName: string; url: string }[] };
-  tsbIds?: string[];
-}
-
 export interface TsbTextRow {
   nhtsaID: string;
   nhtsaDate: string;
@@ -106,6 +93,8 @@ export interface TsbTextRow {
 export interface Tsb extends Omit<TsbTextRow, 'model'> {
   models: { model: string; years: Set<string> }[];
   files: TsbDataStore['files'][0];
+  matchingModel: boolean;
+  newData: boolean;
 }
 
 export async function readTsbFiles(
@@ -228,11 +217,7 @@ export async function getTsbs(
   dataStore: TsbDataStore,
   records: TsbTextRow[],
   model?: string,
-): Promise<{
-  tsbs: Tsb[];
-  newTsbsForMake: string[];
-  newTsbsForModel: string[];
-}> {
+): Promise<Tsb[]> {
   const groups = new Map<string, TsbTextRow[]>();
   for (const rec of records) {
     const groupKey = rec.tsbID ?? rec.nhtsaID;
@@ -240,10 +225,7 @@ export async function getTsbs(
     groups.get(groupKey)!.push(rec);
   }
 
-  const existingMakeTsbs = new Set(dataStore.tsbIds ?? []);
   const tsbs: Tsb[] = [];
-  const newTsbsForModel: string[] = [];
-  const newTsbsForMake: string[] = [];
 
   for (const [, group] of groups.entries()) {
     const modelYears = new Map<string, Set<string>>();
@@ -257,11 +239,6 @@ export async function getTsbs(
     const latest = group.sort((a, b) =>
       b.manufacturerDate.localeCompare(a.manufacturerDate),
     )[0];
-    const issueId = latest.tsbID ?? latest.nhtsaID;
-    if (!existingMakeTsbs.has(issueId)) {
-      newTsbsForMake.push(issueId);
-      existingMakeTsbs.add(issueId);
-    }
 
     const models = Array.from(modelYears.entries()).map(
       ([model, yearsSet]) => ({
@@ -271,27 +248,40 @@ export async function getTsbs(
       }),
     );
 
-    if (model && models.some((m) => m.model === model)) {
-      const { files, newData } = await resolveAssociatedDocuments(
+    const issueId = latest.tsbID ?? latest.nhtsaID;
+    const matchingModel = !!model && models.some((m) => m.model === model);
+    let newData = false;
+    let files: TsbDataStore['files'][0] = [];
+
+    const lastUpdate = dataStore.tsbDates[issueId] ?? '19700101';
+    if (latest.manufacturerDate.localeCompare(lastUpdate) > 0) {
+      dataStore.tsbDates[issueId] = latest.manufacturerDate;
+      newData = true;
+    }
+
+    if (
+      newData &&
+      (matchingModel || latest.manufacturerDate.localeCompare('20250801') > 0)
+    ) {
+      files = await resolveAssociatedDocuments(
         dataStore,
         latest.nhtsaID,
         latest.tsbID,
       );
-      if (newData) {
-        newTsbsForModel.push(issueId);
-      }
+    }
+
+    if (newData || matchingModel) {
       tsbs.push({
         ...latest,
         models,
+        matchingModel,
+        newData,
         files,
       });
     }
   }
 
-  // eslint-disable-next-line require-atomic-updates
-  dataStore.tsbIds = [...existingMakeTsbs];
-
-  return { tsbs, newTsbsForModel, newTsbsForMake };
+  return tsbs;
 }
 
 export function sanitizeSummary(s: string): string {
@@ -317,55 +307,50 @@ export async function resolveAssociatedDocuments(
   dataStore: TsbDataStore,
   nhtsaID: string,
   tsbID?: string,
-): Promise<{ files: TsbDataStore['files'][0]; newData: boolean }> {
-  let files = dataStore.files[nhtsaID];
-  let newData = !files;
-  if (!files || files.length === 0) {
-    const getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
-    if (!getRes.ok)
-      throw new Error(
-        `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,
-      );
-    const data = (await getRes.json()) as {
-      results: {
-        recalls?: {
-          nhtsaCampaignNumber: string;
-          associatedDocuments: {
-            fileName: string;
-            url: string;
-            summary: string;
-          }[];
-        }[];
-        manufacturerCommunications?: {
-          manufacturerCommunicationNumber: string;
-          associatedDocuments: { fileName: string; url: string }[];
+): Promise<TsbDataStore['files'][0]> {
+  const getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
+  if (!getRes.ok)
+    throw new Error(
+      `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,
+    );
+  const data = (await getRes.json()) as {
+    results: {
+      recalls?: {
+        nhtsaCampaignNumber: string;
+        associatedDocuments: {
+          fileName: string;
+          url: string;
+          summary: string;
         }[];
       }[];
-    };
-    files = [];
-    const mcs = data.results.flatMap((r) =>
-      (r.manufacturerCommunications ?? [])
-        .filter((c) => c.manufacturerCommunicationNumber === tsbID)
-        .flatMap((c) => c.associatedDocuments),
-    );
-    files.push(...mcs.map((a) => ({ fileName: a.fileName, url: a.url })));
-    const recalls = data.results.flatMap((r) =>
-      (r.recalls ?? [])
-        .filter((c) => c.nhtsaCampaignNumber === nhtsaID)
-        .flatMap((c) =>
-          c.associatedDocuments.filter(
-            (d) => d.summary === 'Remedy Instructions and TSB',
-          ),
+      manufacturerCommunications?: {
+        manufacturerCommunicationNumber: string;
+        associatedDocuments: { fileName: string; url: string }[];
+      }[];
+    }[];
+  };
+
+  dataStore.files[nhtsaID] = [];
+
+  const mcs = data.results.flatMap((r) =>
+    (r.manufacturerCommunications ?? [])
+      .filter((c) => c.manufacturerCommunicationNumber === tsbID)
+      .flatMap((c) => c.associatedDocuments),
+  );
+  dataStore.files[nhtsaID].push(
+    ...mcs.map((a) => ({ fileName: a.fileName, url: a.url })),
+  );
+  const recalls = data.results.flatMap((r) =>
+    (r.recalls ?? [])
+      .filter((c) => c.nhtsaCampaignNumber === nhtsaID)
+      .flatMap((c) =>
+        c.associatedDocuments.filter(
+          (d) => d.summary === 'Remedy Instructions and TSB',
         ),
-    );
-    files.push(...recalls.map((a) => ({ fileName: a.fileName, url: a.url })));
-
-    // eslint-disable-next-line require-atomic-updates
-    dataStore.files[nhtsaID] = files;
-
-    if (files.length > 0) {
-      newData = true;
-    }
-  }
-  return { files, newData };
+      ),
+  );
+  dataStore.files[nhtsaID].push(
+    ...recalls.map((a) => ({ fileName: a.fileName, url: a.url })),
+  );
+  return dataStore.files[nhtsaID];
 }

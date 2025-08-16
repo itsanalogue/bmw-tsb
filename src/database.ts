@@ -12,6 +12,7 @@ export const readDatabase = () => {
   const dataStore = readJson<TsbDataStore>(dataStorePath(), {
     sources: {},
     files: {},
+    tsbIds: [],
   });
   return dataStore;
 };

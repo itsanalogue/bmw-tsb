@@ -84,6 +84,7 @@ export interface TsbDataStore {
     };
   };
   files: { [key: string]: { fileName: string; url: string }[] };
+  tsbIds?: string[];
 }
 
 export interface TsbTextRow {
@@ -223,7 +224,11 @@ export async function getTsbs(
   dataStore: TsbDataStore,
   records: TsbTextRow[],
   model?: string,
-): Promise<{ tsbs: Tsb[]; newTsbs: string[] }> {
+): Promise<{
+  tsbs: Tsb[];
+  newTsbsForMake: string[];
+  newTsbsForModel: string[];
+}> {
   const groups = new Map<string, TsbTextRow[]>();
   for (const rec of records) {
     const groupKey = rec.tsbID ?? rec.nhtsaID;
@@ -231,8 +236,10 @@ export async function getTsbs(
     groups.get(groupKey)!.push(rec);
   }
 
+  const existingMakeTsbs = new Set(dataStore.tsbIds ?? []);
   const tsbs: Tsb[] = [];
-  const newTsbs: string[] = [];
+  const newTsbsForModel: string[] = [];
+  const newTsbsForMake: string[] = [];
 
   for (const [, group] of groups.entries()) {
     const modelYears = new Map<string, Set<string>>();
@@ -244,6 +251,11 @@ export async function getTsbs(
     }
 
     const first = group[0];
+    const issueId = first.tsbID ?? first.nhtsaID;
+    if (!existingMakeTsbs.has(issueId)) {
+      newTsbsForMake.push(issueId);
+      existingMakeTsbs.add(issueId);
+    }
 
     const models = Array.from(modelYears.entries()).map(
       ([model, yearsSet]) => ({
@@ -260,7 +272,7 @@ export async function getTsbs(
         first.tsbID,
       );
       if (newData) {
-        newTsbs.push(first.tsbID ?? first.nhtsaID);
+        newTsbsForModel.push(issueId);
       }
       tsbs.push({
         ...first,
@@ -270,7 +282,10 @@ export async function getTsbs(
     }
   }
 
-  return { tsbs, newTsbs };
+  // eslint-disable-next-line require-atomic-updates
+  dataStore.tsbIds = [...existingMakeTsbs];
+
+  return { tsbs, newTsbsForModel, newTsbsForMake };
 }
 
 export function sanitizeSummary(s: string): string {

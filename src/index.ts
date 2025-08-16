@@ -67,7 +67,11 @@ export function dateShortDisplay(date?: Date) {
 export async function processTsbs(make: string, model?: string) {
   const dataStore = readDatabase();
   const records = await readTsbFiles(dataStore, make);
-  const { tsbs, newTsbs } = await getTsbs(dataStore, records, model);
+  const { tsbs, newTsbsForModel, newTsbsForMake } = await getTsbs(
+    dataStore,
+    records,
+    model,
+  );
 
   let year = 0;
   let writer: undefined | ReturnType<typeof createOutputWriter> = undefined;
@@ -104,7 +108,7 @@ export async function processTsbs(make: string, model?: string) {
     if (recentCount <= 20) {
       writeTsbBlock(recentWriter, tsb, date, model);
     }
-    if (newTsbs.includes(tsb.tsbID ?? tsb.nhtsaID)) {
+    if (newTsbsForModel.includes(tsb.tsbID ?? tsb.nhtsaID)) {
       writeTsbBlock(newWriter, tsb, date, model);
     }
   }
@@ -115,12 +119,19 @@ export async function processTsbs(make: string, model?: string) {
   console.log(`Wrote ${tsbs.length} TSBs for ${make} ${model}`);
   await saveDatabase(dataStore);
 
-  if (newTsbs.length > 0) {
+  if (newTsbsForModel.length > 0) {
     // eslint-disable-next-line no-console
-    console.log('Sending new TSB email notification.');
+    console.log('Sending new TSB email notification for model.');
     await sendMessage({
       subject: `New TSBs for ${make} ${model}`,
-      bodyText: `New or updated TSBs found: ${newTsbs}`,
+      bodyText: `New or updated TSBs found for ${make} ${model}: ${newTsbsForModel}\nNew TSBs found for ${make}: ${newTsbsForMake}`,
+    });
+  } else if (newTsbsForMake.length > 0) {
+    // eslint-disable-next-line no-console
+    console.log('Sending new TSB email notification for make.');
+    await sendMessage({
+      subject: `New TSBs for ${make}`,
+      bodyText: `New TSBs found for ${make}: ${newTsbsForMake}`,
     });
   }
 }

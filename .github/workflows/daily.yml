@@ -1,5 +1,7 @@
 name: Daily build and run
-
+permissions:
+  contents: read
+  actions: write # require to delete cache
 on:
   schedule:
     - cron: '0 13 * * *'

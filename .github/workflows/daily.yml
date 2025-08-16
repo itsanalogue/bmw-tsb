@@ -2,7 +2,7 @@ name: Daily build and run
 
 on:
   schedule:
-    - cron: "0 14 * * *"
+    - cron: '0 14 * * *'
   workflow_dispatch: {}
 env:
   VOLTA_FEATURE_PNPM: 1
@@ -17,6 +17,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup packages
+        uses: actions/cache@v4
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
       - name: Cache data folder
         uses: actions/cache@v4
         with:
@@ -28,7 +36,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version-file: "package.json"
+          node-version-file: 'package.json'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -39,12 +47,12 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run program
+      - name: Run BMW IX
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-        run: pnpm start
+        run: pnpm start IX
 
       - name: Ensure out exists
         run: mkdir -p out

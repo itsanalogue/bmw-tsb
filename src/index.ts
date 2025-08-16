@@ -1,10 +1,10 @@
-import { getTsbs, readTsbFiles, Tsb } from "./tsb.js";
-import { readDatabase, saveDatabase } from "./database.js";
-import { createOutputWriter } from "./output.js";
-import { sendMessage } from "./email.js";
+import { getTsbs, readTsbFiles, type Tsb } from './tsb.js';
+import { readDatabase, saveDatabase } from './database.js';
+import { createOutputWriter } from './output.js';
+import { sendMessage } from './email.js';
 
 export function parseTsbDate(
-  input: string | undefined | null
+  input: string | undefined | null,
 ): Date | undefined {
   if (!input) return undefined;
   const s = String(input).trim();
@@ -33,7 +33,7 @@ export function sibIdDisplay(input: string): string | undefined {
   if (!input) return undefined;
   const cleaned = String(input)
     .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
+    .replace(/[^A-Z0-9]/g, '');
 
   let s = cleaned;
   if (/^B\d{6}$/.test(s)) {
@@ -59,9 +59,9 @@ export function recallIdDisplay(input: string) {
 
 export function dateShortDisplay(date?: Date) {
   if (!date) {
-    return "";
+    return '';
   }
-  return date.toISOString().split("T")[0];
+  return date.toISOString().split('T')[0];
 }
 
 export async function processTsbs(make: string, model?: string) {
@@ -72,7 +72,7 @@ export async function processTsbs(make: string, model?: string) {
   let year = 0;
   let writer: undefined | ReturnType<typeof createOutputWriter> = undefined;
   for (const tsb of tsbs.sort((a, b) =>
-    a.manufacturerDate.localeCompare(b.manufacturerDate)
+    a.manufacturerDate.localeCompare(b.manufacturerDate),
   )) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
@@ -80,21 +80,21 @@ export async function processTsbs(make: string, model?: string) {
       new Date();
     const thisYear = date.getFullYear();
     if (thisYear > year) {
-      writer?.end();
-      writer = createOutputWriter(make, model ?? "ALL", `${thisYear}.txt`);
+      await writer?.end();
+      writer = createOutputWriter(make, model ?? 'ALL', `${thisYear}.txt`);
       year = thisYear;
     }
     if (writer) {
       writeTsbBlock(writer, tsb, date, model);
     }
   }
-  writer?.end();
+  await writer?.end();
 
-  const recentWriter = createOutputWriter(make, model ?? "ALL", "RECENT.txt");
-  const newWriter = createOutputWriter(make, model ?? "ALL", "NEW.txt");
+  const recentWriter = createOutputWriter(make, model ?? 'ALL', 'RECENT.txt');
+  const newWriter = createOutputWriter(make, model ?? 'ALL', 'NEW.txt');
   let recentCount = 0;
   for (const tsb of tsbs.sort((a, b) =>
-    b.manufacturerDate.localeCompare(a.manufacturerDate)
+    b.manufacturerDate.localeCompare(a.manufacturerDate),
   )) {
     recentCount++;
     const date =
@@ -108,14 +108,16 @@ export async function processTsbs(make: string, model?: string) {
       writeTsbBlock(newWriter, tsb, date, model);
     }
   }
-  recentWriter.end();
-  newWriter.end();
+  await recentWriter.end();
+  await newWriter.end();
 
+  // eslint-disable-next-line no-console
   console.log(`Wrote ${tsbs.length} TSBs for ${make} ${model}`);
   await saveDatabase(dataStore);
 
   if (newTsbs.length > 0) {
-    console.log("Sending new TSB email notification.");
+    // eslint-disable-next-line no-console
+    console.log('Sending new TSB email notification.');
     await sendMessage({
       subject: `New TSBs for ${make} ${model}`,
       bodyText: `New or updated TSBs found: ${newTsbs}`,
@@ -127,10 +129,10 @@ const writeTsbBlock = (
   writer: ReturnType<typeof createOutputWriter>,
   tsb: Tsb,
   date: Date,
-  model?: string
+  model?: string,
 ) => {
   const recallDetails = () => {
-    let details = "";
+    let details = '';
     if (tsb.potentialNumberAffected) {
       details += ` - Affecting ${tsb.potentialNumberAffected} total vehicles`;
     }
@@ -144,29 +146,29 @@ const writeTsbBlock = (
     return details;
   };
   writer.writeLine(
-    `[URL="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}"][B]${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}[/B][/URL] (${dateShortDisplay(date)})`
+    `[URL="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}"][B]${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}[/B][/URL] (${dateShortDisplay(date)})`,
   );
   for (const tsbModel of tsb.models) {
     if (model && tsbModel.model !== model) {
       continue;
     }
     writer.writeLine(
-      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${recallDetails()}`
+      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${recallDetails()}`,
     );
   }
-  writer.writeLine(tsb.component.replace(/\:/g, ": "));
+  writer.writeLine(tsb.component.replace(/\:/g, ': '));
   writer.writeLine(`${tsb.summary}`);
   for (const att of tsb.files) {
     writer.writeLine(`[URL="${att.url}"]${att.fileName}[/URL]`);
   }
-  writer.writeLine(" ");
+  writer.writeLine(' ');
 };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const make = "BMW";
-  const model = process.argv[2] ?? "IX";
+  const make = 'BMW';
+  const model = process.argv[2] ?? 'IX';
   try {
-    processTsbs(make, model);
+    await processTsbs(make, model);
   } catch (error) {
     await sendMessage({
       subject: `Failed to process TSBs for ${make} ${model}`,

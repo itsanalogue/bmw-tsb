@@ -1,4 +1,4 @@
-import fs, { write } from "fs";
+import fs from 'fs';
 
 export const readJson = <T>(filePath: string, defaultT?: T): T => {
   if (fs.existsSync(filePath)) {
@@ -11,7 +11,7 @@ export const readJson = <T>(filePath: string, defaultT?: T): T => {
 
 export const writeJson = async (
   filePath: string,
-  data: unknown
+  data: unknown,
 ): Promise<void> => {
   const json = JSON.stringify(data, null, 2);
   await fs.promises.writeFile(filePath, json);

@@ -1,65 +1,65 @@
-import AdmZip from "adm-zip";
-import fs from "fs";
-import fsPromises from "fs/promises";
-import path from "path";
-import readline from "readline";
-import { readJson, writeJson } from "./storage.js";
+import AdmZip from 'adm-zip';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
+import path from 'path';
+import readline from 'readline';
+import { readJson, writeJson } from './storage.js';
 
 const TSB_HEADERS = [
-  "nhtsaID",
-  "_replID",
-  "nhtsaDate",
-  "tsbID",
-  "manufacturerDate",
-  "_manufacturerID",
-  "type",
-  "make",
-  "model",
-  "year",
-  "component",
-  "_manufacturerComponent",
-  "_manufacturerSubcomponent",
-  "summary",
+  'nhtsaID',
+  '_replID',
+  'nhtsaDate',
+  'tsbID',
+  'manufacturerDate',
+  '_manufacturerID',
+  'type',
+  'make',
+  'model',
+  'year',
+  'component',
+  '_manufacturerComponent',
+  '_manufacturerSubcomponent',
+  'summary',
 ] as const;
 
 const FLAT_RCL_HEADERS = [
-  "_recordID",
-  "nhtsaID",
-  "make",
-  "model",
-  "year",
-  "_manufacturerID",
-  "component",
-  "_reportingManufacturerName",
-  "beginManufacture",
-  "endManufacture",
-  "type",
-  "potentialNumberAffected",
-  "_ownerNotificationDate",
-  "_influencedBy",
-  "_manufacturerName",
-  "nhtsaDate",
-  "manufacturerDate",
-  "_RPNO",
-  "_FMVSS",
-  "summary",
+  '_recordID',
+  'nhtsaID',
+  'make',
+  'model',
+  'year',
+  '_manufacturerID',
+  'component',
+  '_reportingManufacturerName',
+  'beginManufacture',
+  'endManufacture',
+  'type',
+  'potentialNumberAffected',
+  '_ownerNotificationDate',
+  '_influencedBy',
+  '_manufacturerName',
+  'nhtsaDate',
+  'manufacturerDate',
+  '_RPNO',
+  '_FMVSS',
+  'summary',
 ] as const;
 
-const NHTSA_TSB_SOURCE_ROOT = "https://static.nhtsa.gov/odi/ffdd/tsbs/";
-const NHTSA_RECALL_SOURCE_ROOT = "https://static.nhtsa.gov/odi/ffdd/rcl/";
+const NHTSA_TSB_SOURCE_ROOT = 'https://static.nhtsa.gov/odi/ffdd/tsbs/';
+const NHTSA_RECALL_SOURCE_ROOT = 'https://static.nhtsa.gov/odi/ffdd/rcl/';
 const NHTSA_TSB_ISSUES_ROOT =
-  "https://api.nhtsa.gov/safetyIssues/byNhtsaId?name=&nhtsaId=";
+  'https://api.nhtsa.gov/safetyIssues/byNhtsaId?name=&nhtsaId=';
 
-const TSB_SOURCES: TsbDataStore["sources"][0][] = [
+const TSB_SOURCES: TsbDataStore['sources'][0][] = [
   {
-    type: "tsb",
-    fileBaseName: "TSBS_RECEIVED_2020-2024",
+    type: 'tsb',
+    fileBaseName: 'TSBS_RECEIVED_2020-2024',
     active: false,
     cacheDate: undefined,
   },
   {
-    type: "tsb",
-    fileBaseName: "TSBS_RECEIVED_2025-2025",
+    type: 'tsb',
+    fileBaseName: 'TSBS_RECEIVED_2025-2025',
     active: true,
     cacheDate: undefined,
   },
@@ -67,8 +67,8 @@ const TSB_SOURCES: TsbDataStore["sources"][0][] = [
   //{ type: 'recall', fileBaseName: 'RCL_FROM_2020_2024', active: false, cacheDate: undefined },
   //{ type: 'recall', fileBaseName: 'RCL_FROM_2025_2025', active: true, cacheDate: undefined },
   {
-    type: "recall",
-    fileBaseName: "FLAT_RCL_POST_2010",
+    type: 'recall',
+    fileBaseName: 'FLAT_RCL_POST_2010',
     active: true,
     cacheDate: undefined,
   },
@@ -78,7 +78,7 @@ export interface TsbDataStore {
   sources: {
     [key: string]: {
       fileBaseName: string;
-      type: "tsb" | "recall";
+      type: 'tsb' | 'recall';
       active: boolean;
       cacheDate?: Date;
     };
@@ -102,21 +102,21 @@ export interface TsbTextRow {
   endManufacture?: string;
 }
 
-export interface Tsb extends Omit<TsbTextRow, "model"> {
+export interface Tsb extends Omit<TsbTextRow, 'model'> {
   models: { model: string; years: Set<string> }[];
-  files: TsbDataStore["files"][0];
+  files: TsbDataStore['files'][0];
 }
 
 export async function readTsbFiles(
   dataStore: TsbDataStore,
-  make: string
+  make: string,
 ): Promise<TsbTextRow[]> {
-  const dataDir = path.resolve(new URL("../data", import.meta.url).pathname);
-  let records: TsbTextRow[] = [];
+  const dataDir = path.resolve(new URL('../data', import.meta.url).pathname);
+  const records: TsbTextRow[] = [];
   for (const sourceConfig of TSB_SOURCES) {
     const source = dataStore.sources[sourceConfig.fileBaseName] ?? sourceConfig;
 
-    const zipUrl = `${sourceConfig.type === "tsb" ? NHTSA_TSB_SOURCE_ROOT : NHTSA_RECALL_SOURCE_ROOT}${source.fileBaseName}.zip`;
+    const zipUrl = `${sourceConfig.type === 'tsb' ? NHTSA_TSB_SOURCE_ROOT : NHTSA_RECALL_SOURCE_ROOT}${source.fileBaseName}.zip`;
     const zipPath = path.join(dataDir, `${source.fileBaseName}.zip`);
     const txtPath = path.join(dataDir, `${source.fileBaseName}.txt`);
     const jsonPath = path.join(dataDir, `${make}.${source.fileBaseName}.json`);
@@ -124,10 +124,10 @@ export async function readTsbFiles(
     let download = !fs.existsSync(jsonPath);
 
     if (!download && source.active) {
-      const head = await fetch(zipUrl, { method: "HEAD" });
+      const head = await fetch(zipUrl, { method: 'HEAD' });
       if (head.ok) {
         const lastMod =
-          head.headers.get("last-modified") ?? head.headers.get("date");
+          head.headers.get('last-modified') ?? head.headers.get('date');
         const remoteDate = lastMod ? new Date(lastMod) : undefined;
         if (
           !source.cacheDate ||
@@ -138,7 +138,7 @@ export async function readTsbFiles(
         }
       } else {
         throw new Error(
-          `Refresh source check for ${source.fileBaseName} returned ${head.status} ${head.statusText}`
+          `Refresh source check for ${source.fileBaseName} returned ${head.status} ${head.statusText}`,
         );
       }
     }
@@ -152,7 +152,7 @@ export async function readTsbFiles(
         throw new Error(`Failed to download ${zipUrl}: ${getRes.status}`);
 
       const lastMod =
-        getRes.headers.get("last-modified") ?? getRes.headers.get("date");
+        getRes.headers.get('last-modified') ?? getRes.headers.get('date');
       const remoteDate = lastMod ? new Date(lastMod) : undefined;
       source.cacheDate = remoteDate;
 
@@ -173,6 +173,7 @@ export async function readTsbFiles(
       }
     }
 
+    // eslint-disable-next-line require-atomic-updates
     dataStore.sources[sourceConfig.fileBaseName] = source;
 
     let fileRecords = readJson<TsbTextRow[]>(jsonPath) ?? [];
@@ -181,23 +182,23 @@ export async function readTsbFiles(
       fileRecords = [];
       try {
         const rl = readline.createInterface({
-          input: fs.createReadStream(txtPath, { encoding: "utf8" }),
+          input: fs.createReadStream(txtPath, { encoding: 'utf8' }),
           crlfDelay: Infinity,
         });
 
         for await (const line of rl) {
           if (!line || !line.trim()) continue;
-          const cols = line.split("\t");
+          const cols = line.split('\t');
           const obj: Partial<TsbTextRow> = {};
           const headers =
-            source.type === "tsb" ? TSB_HEADERS : FLAT_RCL_HEADERS;
+            source.type === 'tsb' ? TSB_HEADERS : FLAT_RCL_HEADERS;
           headers.forEach((h, i) => {
-            if (h.startsWith("_")) {
+            if (h.startsWith('_')) {
               return;
             }
             const key = h as keyof TsbTextRow;
-            const raw = (cols[i] ?? "").trim();
-            const value = key === "summary" ? sanitizeSummary(raw) : raw;
+            const raw = (cols[i] ?? '').trim();
+            const value = key === 'summary' ? sanitizeSummary(raw) : raw;
             (obj as TsbTextRow)[key] = value;
           });
 
@@ -221,7 +222,7 @@ export async function readTsbFiles(
 export async function getTsbs(
   dataStore: TsbDataStore,
   records: TsbTextRow[],
-  model?: string
+  model?: string,
 ): Promise<{ tsbs: Tsb[]; newTsbs: string[] }> {
   const groups = new Map<string, TsbTextRow[]>();
   for (const rec of records) {
@@ -249,14 +250,14 @@ export async function getTsbs(
         make: first.make,
         model,
         years: yearsSet,
-      })
+      }),
     );
 
     if (model && models.some((m) => m.model === model)) {
       const { files, newData } = await resolveAssociatedDocuments(
         dataStore,
         first.nhtsaID,
-        first.tsbID
+        first.tsbID,
       );
       if (newData) {
         newTsbs.push(first.tsbID ?? first.nhtsaID);
@@ -284,24 +285,25 @@ export function sanitizeSummary(s: string): string {
   //out = out.replace(/Â/g, '"');
   //out = out.replace(/â/g, ' ');
   // Remove other non-printable / control characters
-  out = out.replace(/[\x00-\x1F\x7F-\x9F]/g, " ");
+  // eslint-disable-next-line no-control-regex
+  out = out.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ');
   // Normalize repeated whitespace
-  out = out.replace(/\s+/g, " ").trim();
+  out = out.replace(/\s+/g, ' ').trim();
   return out;
 }
 
 export async function resolveAssociatedDocuments(
   dataStore: TsbDataStore,
   nhtsaID: string,
-  tsbID?: string
-): Promise<{ files: TsbDataStore["files"][0]; newData: boolean }> {
+  tsbID?: string,
+): Promise<{ files: TsbDataStore['files'][0]; newData: boolean }> {
   let files = dataStore.files[nhtsaID];
   let newData = !files;
   if (!files || files.length === 0) {
     const getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
     if (!getRes.ok)
       throw new Error(
-        `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`
+        `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,
       );
     const data = (await getRes.json()) as {
       results: {
@@ -323,7 +325,7 @@ export async function resolveAssociatedDocuments(
     const mcs = data.results.flatMap((r) =>
       (r.manufacturerCommunications ?? [])
         .filter((c) => c.manufacturerCommunicationNumber === tsbID)
-        .flatMap((c) => c.associatedDocuments)
+        .flatMap((c) => c.associatedDocuments),
     );
     files.push(...mcs.map((a) => ({ fileName: a.fileName, url: a.url })));
     const recalls = data.results.flatMap((r) =>
@@ -331,13 +333,15 @@ export async function resolveAssociatedDocuments(
         .filter((c) => c.nhtsaCampaignNumber === nhtsaID)
         .flatMap((c) =>
           c.associatedDocuments.filter(
-            (d) => d.summary === "Remedy Instructions and TSB"
-          )
-        )
+            (d) => d.summary === 'Remedy Instructions and TSB',
+          ),
+        ),
     );
     files.push(...recalls.map((a) => ({ fileName: a.fileName, url: a.url })));
 
+    // eslint-disable-next-line require-atomic-updates
     dataStore.files[nhtsaID] = files;
+
     if (files.length > 0) {
       newData = true;
     }

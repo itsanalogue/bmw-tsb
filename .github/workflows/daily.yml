@@ -28,9 +28,7 @@ jobs:
       - name: Restore data cache
         uses: actions/cache/restore@v4
         with:
-          key: data-${{ runner.os }}-
-          restore-keys: |
-            data
+          key: datastore-${{ runner.os }}
           path: data
 
       - name: Setup node

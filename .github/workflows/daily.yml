@@ -29,6 +29,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           key: data-${{ runner.os }}-
+          restore-keys: |
+            data
           path: data
 
       - name: Setup node
@@ -64,5 +66,5 @@ jobs:
       - name: Save datastore cache
         uses: actions/cache/save@v4
         with:
-          key: data-${{ runner.os }}-
+          key: datastore-${{ runner.os }}
           path: data

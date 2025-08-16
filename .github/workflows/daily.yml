@@ -25,9 +25,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-
 
-      - name: Cache data folder
-        id: datastore-cache
-        uses: actions/cache@v4
+      - name: Restore data cache
+        uses: actions/cache/restore@v4
         with:
           key: data-${{ runner.os }}-
           path: data
@@ -62,8 +61,7 @@ jobs:
           name: out-files
           path: out/**
 
-      - name: Always save datastore cache
-        if: always() && steps.datastore-cache.outputs.cache-hit != ''
+      - name: Save datastore cache
         uses: actions/cache/save@v4
         with:
           key: data-${{ runner.os }}-

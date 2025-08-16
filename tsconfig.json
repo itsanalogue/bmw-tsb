@@ -21,8 +21,9 @@
     "skipLibCheck": true,
     "strict": true,
     "useUnknownInCatchVariables": true,
+    "rootDir": "src",
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,0 +1,38 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "esnext"
+        ],
+        "module": "esnext",
+        "outDir": "dist",
+        "target": "es2021",
+        "types": [
+            "node"
+        ],
+        "composite": false,
+        "declaration": false,
+        "declarationMap": false,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "incremental": true,
+        "inlineSources": false,
+        "isolatedModules": true,
+        "moduleResolution": "node",
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "preserveWatchOutput": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "useUnknownInCatchVariables": true,
+        "rootDir": "src",
+        "allowSyntheticDefaultImports": true,
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

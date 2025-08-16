@@ -1,6 +1,6 @@
 import path from "path";
-import { readJson, writeJson } from "./storage";
-import { TsbDataStore } from "./tsb";
+import { readJson, writeJson } from "./storage.js";
+import { TsbDataStore } from "./tsb.js";
 
 const dataStorePath = () => {
   const dataDir = path.resolve(new URL("../data", import.meta.url).pathname);

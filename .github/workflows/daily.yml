@@ -1,0 +1,56 @@
+name: Daily build and run
+
+on:
+  schedule:
+    - cron: "0 14 * * *"
+  workflow_dispatch: {}
+env:
+  VOLTA_FEATURE_PNPM: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache data folder
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: data-${{ runner.os }}-${{ github.ref }}
+          restore-keys: |
+            data-${{ runner.os }}-
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "package.json"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run program
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: pnpm start
+
+      - name: Ensure out exists
+        run: mkdir -p out
+
+      - name: Upload out artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: out-files
+          path: out/**

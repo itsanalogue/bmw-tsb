@@ -255,6 +255,10 @@ export async function getTsbs(
 
     const lastUpdate = dataStore.tsbDates[issueId] ?? '19700101';
     if (latest.manufacturerDate.localeCompare(lastUpdate) > 0) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `NEW UPDATE ${issueId}: ${lastUpdate} -> ${latest.manufacturerDate}`,
+      );
       dataStore.tsbDates[issueId] = latest.manufacturerDate;
       newData = true;
     }

@@ -263,11 +263,18 @@ export async function getTsbs(
       newData &&
       (matchingModel || latest.manufacturerDate.localeCompare('20250801') > 0)
     ) {
-      files = await resolveAssociatedDocuments(
-        dataStore,
-        latest.nhtsaID,
-        latest.tsbID,
-      );
+      try {
+        files = await resolveAssociatedDocuments(
+          dataStore,
+          latest.nhtsaID,
+          latest.tsbID,
+        );
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Failed to read associated documents for ${latest.tsbID ?? latest.nhtsaID}: ${(error as Error).message}`,
+        );
+      }
     }
 
     if (newData || matchingModel) {

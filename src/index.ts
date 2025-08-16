@@ -92,14 +92,16 @@ export async function processTsbs(make: string, model?: string) {
 
   const recentWriter = createOutputWriter(make, model ?? "ALL", "RECENT.txt");
   const newWriter = createOutputWriter(make, model ?? "ALL", "NEW.txt");
+  let recentCount = 0;
   for (const tsb of tsbs.sort((a, b) =>
     b.manufacturerDate.localeCompare(a.manufacturerDate)
   )) {
+    recentCount++;
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??
       new Date();
-    if (Date.now() - date.getTime() < 365 * 24 * 60 * 60 * 1000) {
+    if (recentCount <= 20) {
       writeTsbBlock(recentWriter, tsb, date, model);
     }
     if (newTsbs.includes(tsb.tsbID ?? tsb.nhtsaID)) {
@@ -110,6 +112,7 @@ export async function processTsbs(make: string, model?: string) {
   newWriter.end();
 
   console.log(`Wrote ${tsbs.length} TSBs for ${make} ${model}`);
+  await saveDatabase(dataStore);
 
   if (newTsbs.length > 0) {
     console.log("Sending new TSB email notification.");
@@ -118,8 +121,6 @@ export async function processTsbs(make: string, model?: string) {
       bodyText: `New or updated TSBs found: ${newTsbs}`,
     });
   }
-
-  await saveDatabase(dataStore);
 }
 
 const writeTsbBlock = (
@@ -162,5 +163,15 @@ const writeTsbBlock = (
 };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  processTsbs("BMW", process.argv[2] ?? "IX");
+  const make = "BMW";
+  const model = process.argv[2] ?? "IX";
+  try {
+    processTsbs(make, model);
+  } catch (error) {
+    await sendMessage({
+      subject: `Failed to process TSBs for ${make} ${model}`,
+      bodyText: `The process failed with error ${(error as Error).message}`,
+    });
+    throw error;
+  }
 }

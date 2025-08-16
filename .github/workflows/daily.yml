@@ -26,6 +26,7 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - name: Restore data cache
+        id: restore-data-cache
         uses: actions/cache/restore@v4
         with:
           key: datastore-${{ runner.os }}
@@ -60,6 +61,15 @@ jobs:
         with:
           name: out-files
           path: out/**
+
+      - name: Clear stale datastore cache
+        if: ${{ steps.restore-data-cache.outputs.cache-hit }}
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "datastore-${{ runner.os }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Save datastore cache
         uses: actions/cache/save@v4

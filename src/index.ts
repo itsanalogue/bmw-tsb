@@ -86,6 +86,8 @@ export async function processTsbs(make: string, model?: string) {
     if (thisYear > year) {
       await writer?.end();
       writer = createOutputWriter(make, model ?? 'ALL', `${thisYear}.txt`);
+      writer.writeLine(`[B][SIZE="5"]${thisYear}[/SIZE][/B]`);
+      writer.writeLine('');
       year = thisYear;
     }
     if (writer) {

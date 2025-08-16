@@ -203,7 +203,11 @@ export async function readTsbFiles(
             (obj as TsbTextRow)[key] = value;
           });
 
-          if (obj.make === make) {
+          let validForMake = obj.make === make;
+          if (make === 'BMW' && obj.tsbID && obj.tsbID.startsWith('M')) {
+            validForMake = false;
+          }
+          if (validForMake) {
             fileRecords.push(obj as TsbTextRow);
           }
         }
@@ -250,8 +254,10 @@ export async function getTsbs(
       if (year) modelYears.get(model)!.add(year);
     }
 
-    const first = group[0];
-    const issueId = first.tsbID ?? first.nhtsaID;
+    const latest = group.sort((a, b) =>
+      b.manufacturerDate.localeCompare(a.manufacturerDate),
+    )[0];
+    const issueId = latest.tsbID ?? latest.nhtsaID;
     if (!existingMakeTsbs.has(issueId)) {
       newTsbsForMake.push(issueId);
       existingMakeTsbs.add(issueId);
@@ -259,7 +265,7 @@ export async function getTsbs(
 
     const models = Array.from(modelYears.entries()).map(
       ([model, yearsSet]) => ({
-        make: first.make,
+        make: latest.make,
         model,
         years: yearsSet,
       }),
@@ -268,14 +274,14 @@ export async function getTsbs(
     if (model && models.some((m) => m.model === model)) {
       const { files, newData } = await resolveAssociatedDocuments(
         dataStore,
-        first.nhtsaID,
-        first.tsbID,
+        latest.nhtsaID,
+        latest.tsbID,
       );
       if (newData) {
         newTsbsForModel.push(issueId);
       }
       tsbs.push({
-        ...first,
+        ...latest,
         models,
         files,
       });

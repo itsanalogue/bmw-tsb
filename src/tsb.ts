@@ -6,6 +6,7 @@ import readline from 'readline';
 import { readJson, writeJson } from './storage.js';
 import type { TsbDataStore } from './database.js';
 import log from './log.js';
+import { isModelMatch } from './model-match.js';
 
 const TSB_HEADERS = [
   'nhtsaID',
@@ -347,7 +348,7 @@ export async function getTsbs(
 
     const fetchDetails =
       newData &&
-      (models.some((m) => getDetailsForModels.has(m.model)) ||
+      (isModelMatch(models, getDetailsForModels) ||
         latest.manufacturerDate.localeCompare(fetchOtherCutoff) > 0);
 
     if (fetchDetails) {

@@ -8,7 +8,7 @@ export const createOutputWriter = (
   opts?: { append?: boolean },
 ) => {
   const dataDir = path.resolve(
-    new URL(`../out/${make}-${model}`, import.meta.url).pathname,
+    decodeURI(new URL(`../out/${make}-${model}`, import.meta.url).pathname),
   );
 
   fs.mkdirSync(dataDir, { recursive: true });

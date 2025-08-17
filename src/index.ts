@@ -4,6 +4,7 @@ import { createOutputWriter } from './output.js';
 import { sendMessage } from './email.js';
 import log from './log.js';
 import { isModelMatch } from './model-match.js';
+import { updateForumPosts } from './forum-update.js';
 
 export function parseTsbDate(
   input: string | undefined | null,
@@ -205,6 +206,19 @@ export async function processTsbs(make: string, models: string[]) {
   log.info(
     `Wrote TSB forum output for ${make} ${models} to ${forumWriters.size} files.`,
   );
+
+  if (forumWriters.size > 0) {
+    try {
+      const updateCount = await updateForumPosts(dataStore);
+      if (updateCount > 0) {
+        await saveDatabase(dataStore);
+        log.info(`Updated ${updateCount} forum posts with new content.`);
+      }
+    } catch (error) {
+      const errorMsg = `Failed to update forums for ${make} ${models}`;
+      log.error(errorMsg, error);
+    }
+  }
 
   const emailModelList: string[] = [];
   const emailMakeList: string[] = [];

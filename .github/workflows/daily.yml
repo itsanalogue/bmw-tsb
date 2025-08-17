@@ -50,6 +50,8 @@ jobs:
 
       - name: Run
         env:
+          BBUSERID: ${{ secrets.BBUSERID }}
+          BBPASSWORD: ${{ secrets.BBPASSWORD }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}

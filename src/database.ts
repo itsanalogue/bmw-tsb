@@ -11,6 +11,7 @@ export interface TsbDataStore {
   };
   files: { [key: string]: { fileName: string; url: string }[] };
   tsbDates: { [id: string]: string };
+  forumPostHashes: { [postId: string]: string };
 }
 
 const dataStorePath = () => {
@@ -21,8 +22,9 @@ const dataStorePath = () => {
 
 export const readDatabase = () => {
   const dataStore = readJson<TsbDataStore>(dataStorePath(), {
-    sources: {},
     files: {},
+    forumPostHashes: {},
+    sources: {},
     tsbDates: {},
   });
   if (!dataStore.sources) {
@@ -33,6 +35,9 @@ export const readDatabase = () => {
   }
   if (!dataStore.tsbDates) {
     dataStore.tsbDates = {};
+  }
+  if (!dataStore.forumPostHashes) {
+    dataStore.forumPostHashes = {};
   }
   return dataStore;
 };

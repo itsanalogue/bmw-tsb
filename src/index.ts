@@ -2,6 +2,7 @@ import { getTsbs, readTsbFiles, type Tsb } from './tsb.js';
 import { readDatabase, saveDatabase } from './database.js';
 import { createOutputWriter } from './output.js';
 import { sendMessage } from './email.js';
+import log from './log.js';
 
 export function parseTsbDate(
   input: string | undefined | null,
@@ -64,105 +65,6 @@ export function dateShortDisplay(date?: Date) {
   return date.toISOString().split('T')[0];
 }
 
-export async function processTsbs(make: string, model?: string) {
-  const dataStore = readDatabase();
-  const records = await readTsbFiles(dataStore, make);
-  const tsbs = await getTsbs(dataStore, records, model);
-
-  let modelCount = 0;
-  let year = 0;
-  let forumWriter: undefined | ReturnType<typeof createOutputWriter> =
-    undefined;
-  for (const tsb of tsbs
-    .filter((t) => t.matchingModel)
-    .sort((a, b) => a.manufacturerDate.localeCompare(b.manufacturerDate))) {
-    modelCount++;
-    const date =
-      parseTsbDate(tsb.manufacturerDate) ??
-      parseTsbDate(tsb.nhtsaDate) ??
-      new Date();
-    const thisYear = date.getFullYear();
-    if (thisYear > year) {
-      await forumWriter?.end();
-      forumWriter = createOutputWriter(make, model ?? 'ALL', `${thisYear}.txt`);
-      forumWriter.writeLine(`[B][SIZE="5"]${thisYear}[/SIZE][/B]`);
-      forumWriter.writeLine('');
-      year = thisYear;
-    }
-    if (forumWriter) {
-      writeForumEntry(forumWriter, tsb, date, model);
-    }
-  }
-  await forumWriter?.end();
-
-  const recentWriter = createOutputWriter(make, model ?? 'ALL', 'RECENT.txt');
-  const newWriter = createOutputWriter(make, model ?? 'ALL', 'NEW.txt');
-  let recentCount = 0;
-  for (const tsb of tsbs
-    .filter((t) => t.matchingModel)
-    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
-    recentCount++;
-    const date =
-      parseTsbDate(tsb.manufacturerDate) ??
-      parseTsbDate(tsb.nhtsaDate) ??
-      new Date();
-    if (recentCount <= 20) {
-      writeForumEntry(recentWriter, tsb, date, model);
-    }
-    if (tsb.newData) {
-      writeForumEntry(newWriter, tsb, date, model);
-    }
-  }
-  await recentWriter.end();
-  await newWriter.end();
-
-  // eslint-disable-next-line no-console
-  console.log(`Wrote ${modelCount} TSBs for ${make} ${model}`);
-  await saveDatabase(dataStore);
-
-  const emailModelList: string[] = [];
-  const emailMakeList: string[] = [];
-  for (const tsb of tsbs
-    .filter(
-      (t) => t.newData && t.manufacturerDate.localeCompare('20250701') > 0,
-    )
-    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
-    const date =
-      parseTsbDate(tsb.manufacturerDate) ??
-      parseTsbDate(tsb.nhtsaDate) ??
-      new Date();
-    addEmailEntry(
-      tsb.matchingModel ? emailModelList : emailMakeList,
-      tsb,
-      date,
-    );
-  }
-
-  if (emailMakeList.length > 0 || emailModelList.length > 0) {
-    // eslint-disable-next-line no-console
-    console.log(
-      `Sending new TSB email notification for ${emailModelList.length} model and ${emailMakeList.length} make updates.`,
-    );
-    let bodyText = '';
-    if (emailModelList.length > 0) {
-      bodyText += `New or updated TSBs found for ${make} ${model}:\n`;
-      for (const item of emailModelList) {
-        bodyText += item;
-      }
-    }
-    if (emailMakeList.length > 0) {
-      bodyText += `\n\nNew or updated TSBs found for ${make}:\n`;
-      for (const item of emailMakeList) {
-        bodyText += item;
-      }
-    }
-    await sendMessage({
-      subject: `New TSBs for ${make} ${model}`,
-      bodyText,
-    });
-  }
-}
-
 const recallDetails = (tsb: Tsb) => {
   let details = '';
   if (tsb.potentialNumberAffected) {
@@ -219,14 +121,156 @@ const writeForumEntry = (
   writer.writeLine(' ');
 };
 
+export async function processTsbs(make: string, models: string[]) {
+  const modelSet = new Set(models);
+
+  const dataStore = readDatabase();
+  const records = await readTsbFiles(dataStore, make);
+  const tsbs = await getTsbs(dataStore, records, modelSet);
+  await saveDatabase(dataStore);
+
+  const forumWriters = new Map<string, ReturnType<typeof createOutputWriter>>();
+
+  //Add chronological forum output organized by model and calendar year
+  for (const tsb of tsbs
+    .filter((t) => t.models.some((m) => modelSet.has(m.model)))
+    .sort((a, b) => a.manufacturerDate.localeCompare(b.manufacturerDate))) {
+    const date =
+      parseTsbDate(tsb.manufacturerDate) ??
+      parseTsbDate(tsb.nhtsaDate) ??
+      new Date();
+    const tsbYear = date.getFullYear();
+
+    for (const tsbModel of tsb.models) {
+      if (modelSet.has(tsbModel.model)) {
+        const writerKey = `${tsbYear}-${tsbModel.model}`;
+
+        let writer = forumWriters.get(writerKey);
+        if (!writer) {
+          writer = createOutputWriter(make, tsbModel.model, `${tsbYear}.txt`);
+          writer.writeLine(`[B][SIZE="5"]${tsbYear}[/SIZE][/B]`);
+          writer.writeLine('');
+          forumWriters.set(writerKey, writer);
+        }
+
+        writeForumEntry(writer, tsb, date, tsbModel.model);
+      }
+    }
+  }
+
+  //Add reverse chronological forum output organized by model and new/recent
+  const recentCountMap = new Map<string, number>();
+  for (const tsb of tsbs
+    .filter((t) => t.models.some((m) => modelSet.has(m.model)))
+    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
+    const date =
+      parseTsbDate(tsb.manufacturerDate) ??
+      parseTsbDate(tsb.nhtsaDate) ??
+      new Date();
+
+    for (const tsbModel of tsb.models) {
+      if (modelSet.has(tsbModel.model)) {
+        if (tsb.newData) {
+          const writerKey = `NEW-${tsbModel.model}`;
+          let writer = forumWriters.get(writerKey);
+          if (!writer) {
+            writer = createOutputWriter(make, tsbModel.model, `NEW.txt`);
+            forumWriters.set(writerKey, writer);
+          }
+          writeForumEntry(writer, tsb, date, tsbModel.model);
+        }
+
+        const recentCount = recentCountMap.get(tsbModel.model) ?? 0;
+        if (recentCount < 20) {
+          recentCountMap.set(tsbModel.model, recentCount + 1);
+          const writerKey = `RECENT-${tsbModel.model}`;
+          let writer = forumWriters.get(writerKey);
+          if (!writer) {
+            writer = createOutputWriter(make, tsbModel.model, `RECENT.txt`);
+            forumWriters.set(writerKey, writer);
+          }
+          writeForumEntry(writer, tsb, date, tsbModel.model);
+        }
+      }
+    }
+  }
+
+  // Close all forum file writers
+  for (const writer of forumWriters.values()) {
+    await writer.end();
+  }
+
+  log.info(
+    `Wrote TSB forum output for ${make} ${models} to ${forumWriters.size} files.`,
+  );
+
+  const emailModelList: string[] = [];
+  const emailMakeList: string[] = [];
+  const emailCutoff = new Date();
+  emailCutoff.setMonth(emailCutoff.getMonth() - 1);
+  const emailCutoffCompare = emailCutoff
+    .toISOString()
+    .split('T')[0]
+    .replaceAll('-', '');
+
+  for (const tsb of tsbs
+    .filter(
+      (t) =>
+        t.newData && t.manufacturerDate.localeCompare(emailCutoffCompare) > 0,
+    )
+    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
+    const date =
+      parseTsbDate(tsb.manufacturerDate) ??
+      parseTsbDate(tsb.nhtsaDate) ??
+      new Date();
+
+    addEmailEntry(
+      tsb.models.some((m) => modelSet.has(m.model))
+        ? emailModelList
+        : emailMakeList,
+      tsb,
+      date,
+    );
+  }
+
+  if (emailMakeList.length > 0 || emailModelList.length > 0) {
+    log.info(
+      `Sending new TSB email notification for ${emailModelList.length} model and ${emailMakeList.length} make updates.`,
+    );
+    let bodyText = '';
+    if (emailModelList.length > 0) {
+      bodyText += `\n\n============================================================\n`;
+      bodyText += `New or updated TSBs found for ${make} ${models}:\n`;
+      bodyText += `============================================================\n\n`;
+      for (const item of emailModelList) {
+        bodyText += item;
+      }
+    }
+    if (emailMakeList.length > 0) {
+      bodyText += `\n\n============================================================\n`;
+      bodyText += `New or updated TSBs found for other ${make} models:\n`;
+      bodyText += `============================================================\n\n`;
+      for (const item of emailMakeList) {
+        bodyText += item;
+      }
+    }
+    await sendMessage({
+      subject: `New TSBs for ${make} ${emailModelList.length > 0 ? models : ''}`,
+      bodyText,
+    });
+  }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const make = 'BMW';
-  const model = process.argv[2] ?? 'IX';
+  const models = (process.argv[2] ?? '').split(',').filter((s) => s.length > 0);
   try {
-    await processTsbs(make, model);
+    await processTsbs(make, models);
   } catch (error) {
+    const errorMsg = `Failed to process TSBs for ${make} ${models}`;
+    log.error(errorMsg, error);
     await sendMessage({
-      subject: `Failed to process TSBs for ${make} ${model}`,
+      subject: errorMsg,
       bodyText: `The process failed with error ${(error as Error).message}`,
     });
     throw error;

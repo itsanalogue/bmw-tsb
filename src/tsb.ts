@@ -5,6 +5,7 @@ import path from 'path';
 import readline from 'readline';
 import { readJson, writeJson } from './storage.js';
 import type { TsbDataStore } from './database.js';
+import log from './log.js';
 
 const TSB_HEADERS = [
   'nhtsaID',
@@ -93,8 +94,78 @@ export interface TsbTextRow {
 export interface Tsb extends Omit<TsbTextRow, 'model'> {
   models: { model: string; years: Set<string> }[];
   files: TsbDataStore['files'][0];
-  matchingModel: boolean;
   newData: boolean;
+}
+
+export function sanitizeSummary(s: string): string {
+  if (!s) return s;
+  let out = s;
+  // Common mojibake sequences observed in dataset
+  //out = out.replace(/â|â|â?\?\u009d|â\?\u009d/g, '"');
+  //out = out.replace(/â|â\u009d/g, '"');
+  //out = out.replace(/[ÂÃ¢\u0080\u0082\u00083]+/g, '"');
+  out = out.replace(/[ÂÃ¢\u0080\u0082\u0083\u009C\u009D]+/g, '"');
+  //out = out.replace(/â/g, '');
+  //out = out.replace(/Â/g, '"');
+  //out = out.replace(/â/g, ' ');
+  // Remove other non-printable / control characters
+  // eslint-disable-next-line no-control-regex
+  out = out.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ');
+  // Normalize repeated whitespace
+  out = out.replace(/\s+/g, ' ').trim();
+  return out;
+}
+
+export async function resolveAssociatedDocuments(
+  dataStore: TsbDataStore,
+  nhtsaID: string,
+  tsbID?: string,
+): Promise<TsbDataStore['files'][0]> {
+  const getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
+  if (!getRes.ok)
+    throw new Error(
+      `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,
+    );
+  const data = (await getRes.json()) as {
+    results: {
+      recalls?: {
+        nhtsaCampaignNumber: string;
+        associatedDocuments: {
+          fileName: string;
+          url: string;
+          summary: string;
+        }[];
+      }[];
+      manufacturerCommunications?: {
+        manufacturerCommunicationNumber: string;
+        associatedDocuments: { fileName: string; url: string }[];
+      }[];
+    }[];
+  };
+
+  dataStore.files[nhtsaID] = [];
+
+  const mcs = data.results.flatMap((r) =>
+    (r.manufacturerCommunications ?? [])
+      .filter((c) => c.manufacturerCommunicationNumber === tsbID)
+      .flatMap((c) => c.associatedDocuments),
+  );
+  dataStore.files[nhtsaID].push(
+    ...mcs.map((a) => ({ fileName: a.fileName, url: a.url })),
+  );
+  const recalls = data.results.flatMap((r) =>
+    (r.recalls ?? [])
+      .filter((c) => c.nhtsaCampaignNumber === nhtsaID)
+      .flatMap((c) =>
+        c.associatedDocuments.filter(
+          (d) => d.summary === 'Remedy Instructions and TSB',
+        ),
+      ),
+  );
+  dataStore.files[nhtsaID].push(
+    ...recalls.map((a) => ({ fileName: a.fileName, url: a.url })),
+  );
+  return dataStore.files[nhtsaID];
 }
 
 export async function readTsbFiles(
@@ -125,6 +196,9 @@ export async function readTsbFiles(
             remoteDate.getTime() > new Date(source.cacheDate).getTime())
         ) {
           download = true;
+          log.info(
+            `Source ${sourceConfig.fileBaseName} has new version uploaded at ${remoteDate?.toISOString()}.`,
+          );
         }
       } else {
         throw new Error(
@@ -134,8 +208,9 @@ export async function readTsbFiles(
     }
 
     if (download) {
-      // Ensure data directory exists
       await fsPromises.mkdir(dataDir, { recursive: true });
+
+      log.info(`Downloading source ${sourceConfig.fileBaseName} `);
 
       const getRes = await fetch(zipUrl);
       if (!getRes.ok)
@@ -216,7 +291,7 @@ export async function readTsbFiles(
 export async function getTsbs(
   dataStore: TsbDataStore,
   records: TsbTextRow[],
-  model?: string,
+  getDetailsForModels: Set<string>,
 ): Promise<Tsb[]> {
   const groups = new Map<string, TsbTextRow[]>();
   for (const rec of records) {
@@ -226,6 +301,13 @@ export async function getTsbs(
   }
 
   const tsbs: Tsb[] = [];
+
+  const otherCutoffDate = new Date();
+  otherCutoffDate.setMonth(otherCutoffDate.getMonth() - 1);
+  const fetchOtherCutoff = otherCutoffDate
+    .toISOString()
+    .split('T')[0]
+    .replaceAll('-', '');
 
   for (const [, group] of groups.entries()) {
     const modelYears = new Map<string, Set<string>>();
@@ -249,119 +331,49 @@ export async function getTsbs(
     );
 
     const issueId = latest.tsbID ?? latest.nhtsaID;
-    const matchingModel = !!model && models.some((m) => m.model === model);
     let newData = false;
     let files: TsbDataStore['files'][0] = [];
 
-    const lastUpdate = dataStore.tsbDates[issueId] ?? '19700101';
-    if (latest.manufacturerDate.localeCompare(lastUpdate) > 0) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `SIB UPDATE ${issueId}: ${dataStore.tsbDates[issueId] ?? ''} -> ${latest.manufacturerDate}`,
+    if (
+      latest.manufacturerDate.localeCompare(dataStore.tsbDates[issueId] ?? '') >
+      0
+    ) {
+      log.info(
+        `Service Bulletin ${issueId} updated: ${dataStore.tsbDates[issueId] ?? ''} -> ${latest.manufacturerDate}`,
       );
       dataStore.tsbDates[issueId] = latest.manufacturerDate;
       newData = true;
     }
 
-    if (
+    const fetchDetails =
       newData &&
-      (matchingModel || latest.manufacturerDate.localeCompare('20250801') > 0)
-    ) {
+      (models.some((m) => getDetailsForModels.has(m.model)) ||
+        latest.manufacturerDate.localeCompare(fetchOtherCutoff) > 0);
+
+    if (fetchDetails) {
       try {
         files = await resolveAssociatedDocuments(
           dataStore,
           latest.nhtsaID,
           latest.tsbID,
         );
+        log.info(
+          `Service Bulletin ${issueId} has ${files.length} associated files.`,
+        );
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Failed to read associated documents for ${latest.tsbID ?? latest.nhtsaID}: ${(error as Error).message}`,
+        log.error(
+          `Failed to read associated documents for ${issueId}: ${(error as Error).message}`,
         );
       }
     }
 
-    if (newData || matchingModel) {
-      tsbs.push({
-        ...latest,
-        models,
-        matchingModel,
-        newData,
-        files,
-      });
-    }
+    tsbs.push({
+      ...latest,
+      models,
+      newData,
+      files,
+    });
   }
 
   return tsbs;
-}
-
-export function sanitizeSummary(s: string): string {
-  if (!s) return s;
-  let out = s;
-  // Common mojibake sequences observed in dataset
-  //out = out.replace(/â|â|â?\?\u009d|â\?\u009d/g, '"');
-  //out = out.replace(/â|â\u009d/g, '"');
-  //out = out.replace(/[ÂÃ¢\u0080\u0082\u00083]+/g, '"');
-  out = out.replace(/[ÂÃ¢\u0080\u0082\u0083\u009C\u009D]+/g, '"');
-  //out = out.replace(/â/g, '');
-  //out = out.replace(/Â/g, '"');
-  //out = out.replace(/â/g, ' ');
-  // Remove other non-printable / control characters
-  // eslint-disable-next-line no-control-regex
-  out = out.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ');
-  // Normalize repeated whitespace
-  out = out.replace(/\s+/g, ' ').trim();
-  return out;
-}
-
-export async function resolveAssociatedDocuments(
-  dataStore: TsbDataStore,
-  nhtsaID: string,
-  tsbID?: string,
-): Promise<TsbDataStore['files'][0]> {
-  const getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
-  if (!getRes.ok)
-    throw new Error(
-      `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,
-    );
-  const data = (await getRes.json()) as {
-    results: {
-      recalls?: {
-        nhtsaCampaignNumber: string;
-        associatedDocuments: {
-          fileName: string;
-          url: string;
-          summary: string;
-        }[];
-      }[];
-      manufacturerCommunications?: {
-        manufacturerCommunicationNumber: string;
-        associatedDocuments: { fileName: string; url: string }[];
-      }[];
-    }[];
-  };
-
-  dataStore.files[nhtsaID] = [];
-
-  const mcs = data.results.flatMap((r) =>
-    (r.manufacturerCommunications ?? [])
-      .filter((c) => c.manufacturerCommunicationNumber === tsbID)
-      .flatMap((c) => c.associatedDocuments),
-  );
-  dataStore.files[nhtsaID].push(
-    ...mcs.map((a) => ({ fileName: a.fileName, url: a.url })),
-  );
-  const recalls = data.results.flatMap((r) =>
-    (r.recalls ?? [])
-      .filter((c) => c.nhtsaCampaignNumber === nhtsaID)
-      .flatMap((c) =>
-        c.associatedDocuments.filter(
-          (d) => d.summary === 'Remedy Instructions and TSB',
-        ),
-      ),
-  );
-  dataStore.files[nhtsaID].push(
-    ...recalls.map((a) => ({ fileName: a.fileName, url: a.url })),
-  );
-  return dataStore.files[nhtsaID];
 }

@@ -27,7 +27,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-
 
-      - name: Restore data cache
+      - name: Restore datastore cache
         id: restore-data-cache
         uses: actions/cache/restore@v4
         with:
@@ -48,7 +48,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run BMW IX
+      - name: Run
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
@@ -73,7 +73,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Save datastore cache
+      - name: Save updated datastore cache
         uses: actions/cache/save@v4
         with:
           key: datastore-${{ runner.os }}

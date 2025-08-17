@@ -1,4 +1,5 @@
 import * as nodemailer from 'nodemailer';
+import log from './log.js';
 
 export interface MailMessage {
   subject: string;
@@ -16,9 +17,8 @@ const emailConfig = {
 
 export function sendMessage(message: MailMessage): Promise<void> {
   if (!emailConfig.to || !emailConfig.username || !emailConfig.password) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `EMAIL SERVER NOT CONFIGURED.\nSUBJECT: ${message.subject}\n\n${message.bodyText}`,
+    log.warn(
+      `EMAIL SERVER NOT CONFIGURED.\n\nSUBJECT: ${message.subject}\n\n${message.bodyText}`,
     );
     return Promise.resolve();
   }

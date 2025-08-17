@@ -11,8 +11,6 @@ export interface TsbDataStore {
   };
   files: { [key: string]: { fileName: string; url: string }[] };
   tsbDates: { [id: string]: string };
-  //deprecated
-  tsbIds?: string[];
 }
 
 const dataStorePath = () => {
@@ -27,7 +25,12 @@ export const readDatabase = () => {
     files: {},
     tsbDates: {},
   });
-  delete dataStore.tsbIds;
+  if (!dataStore.sources) {
+    dataStore.sources = {};
+  }
+  if (!dataStore.files) {
+    dataStore.files = {};
+  }
   if (!dataStore.tsbDates) {
     dataStore.tsbDates = {};
   }

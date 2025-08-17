@@ -191,6 +191,8 @@ export async function processTsbs(make: string, models: string[]) {
         let writer = forumWriters.get(writerKey);
         if (!writer) {
           writer = createOutputWriter(make, model, `RECENT.txt`);
+          writer.writeLine(`[B][SIZE="5"]Recent Bulletins[/SIZE][/B]`);
+          writer.writeLine('');
           forumWriters.set(writerKey, writer);
         }
         writeForumEntry(writer, tsb, date, modelSlice);

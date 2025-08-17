@@ -10,13 +10,33 @@ interface ForumPost {
   contentPath: string;
 }
 const FORUM_POSTS: ForumPost[] = [
-  //   {
-  //     postId: '32284231',
-  //     forumDomain: 'bmwi.bimmerpost.com',
-  //     contentPath: 'BMW-IX/2025.txt',
-  //   },
+  {
+    postId: '32284226',
+    forumDomain: 'bmwi.bimmerpost.com',
+    contentPath: 'BMW-IX/RECENT.txt',
+  },
+  {
+    postId: '32284227',
+    forumDomain: 'bmwi.bimmerpost.com',
+    contentPath: 'BMW-IX/2022.txt',
+  },
+  {
+    postId: '32284230',
+    forumDomain: 'bmwi.bimmerpost.com',
+    contentPath: 'BMW-IX/2023.txt',
+  },
+  {
+    postId: '32284231',
+    forumDomain: 'bmwi.bimmerpost.com',
+    contentPath: 'BMW-IX/2024.txt',
+  },
   {
     postId: '32284233',
+    forumDomain: 'bmwi.bimmerpost.com',
+    contentPath: 'BMW-IX/2025.txt',
+  },
+  {
+    postId: '3228425',
     forumDomain: 'bmwi.bimmerpost.com',
     contentPath: 'BMW-IX/2026.txt',
   },
@@ -36,11 +56,6 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
   let updateCount = 0;
   for (const post of FORUM_POSTS) {
     const contentFilePath = path.join(outputPath, post.contentPath);
-
-    //TEST CODE FOR GHA ENV
-    if (!fs.existsSync(contentFilePath) && post.postId === '32284233') {
-      fs.writeFileSync(contentFilePath, '[B]2026[/B]');
-    }
 
     if (fs.existsSync(contentFilePath)) {
       const content = fs.readFileSync(contentFilePath, 'utf-8');

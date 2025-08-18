@@ -37,9 +37,14 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-IX/2025.txt',
   },
   {
-    postId: '3228425',
+    postId: '32284235',
     forumDomain: 'bmwi.bimmerpost.com',
     contentPath: 'BMW-IX/2026.txt',
+  },
+  {
+    postId: '32284236',
+    forumDomain: 'bmwi.bimmerpost.com',
+    contentPath: 'BMW-IX/2027.txt',
   },
 ];
 
@@ -140,10 +145,9 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
 
       const vbVersion = /vBulletin ([\d\.]+)/.exec(editPageText);
       if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {
-        log.warn(
+        throw new Error(
           `Unexpected vBulletin version (${vbVersion?.[1]}).  Will not attempt forum updates.`,
         );
-        return 0;
       }
 
       const csrfTokenMatch = /var\sSECURITYTOKEN\s=\s"([^"]+)";/.exec(

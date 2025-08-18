@@ -138,7 +138,7 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
       }
       const editPageText = await editPageRes.text();
 
-      const vbVersion = /vBulletin (\d\.)+/.exec(editPageText);
+      const vbVersion = /vBulletin ([\d\.]+)/.exec(editPageText);
       if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {
         log.warn(
           `Unexpected vBulletin version (${vbVersion?.[1]}).  Will not attempt forum updates.`,

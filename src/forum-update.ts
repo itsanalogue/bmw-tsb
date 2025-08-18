@@ -9,6 +9,7 @@ interface ForumPost {
   forumDomain: string;
   contentPath: string;
 }
+const VBULLETIN_VERSION = '3.8.11';
 const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32284226',
@@ -41,6 +42,56 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-IX/2026.txt',
   },
 ];
+
+export const encodeContentForVbulletin = (s: string) => {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charAt(i);
+    const code = s.charCodeAt(i);
+    switch (code) {
+      case 0x2018:
+        out += '%91';
+        break;
+      case 0x2019:
+        out += '%92';
+        break;
+      case 0x201c:
+        out += '%93';
+        break;
+      case 0x201d:
+        out += '%94';
+        break;
+      case 0x2022:
+        out += '%95';
+        break;
+      case 0x2013:
+        out += '%96';
+        break;
+      case 0x2014:
+        out += '%97';
+        break;
+      case 0x2122:
+        out += '%99';
+        break;
+      case 0x28:
+      case 0x29:
+        out += `%${code.toString(16)}`;
+        break;
+      case 0x0a:
+        out += '%0D';
+        out += encodeURIComponent(ch);
+        break;
+      default:
+        if (code < 0x80) {
+          out += encodeURIComponent(ch);
+        } else {
+          out += '%u' + code.toString(16).toUpperCase().padStart(4, '0');
+        }
+        break;
+    }
+  }
+  return out.replace(/%20/g, '+');
+};
 
 export async function updateForumPosts(dataStore: TsbDataStore) {
   const bbpassword = process.env.BBPASSWORD;
@@ -86,6 +137,15 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
         );
       }
       const editPageText = await editPageRes.text();
+
+      const vbVersion = /vBulletin (\d\.)+/.exec(editPageText);
+      if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {
+        log.warn(
+          `Unexpected vBulletin version (${vbVersion?.[1]}).  Will not attempt forum updates.`,
+        );
+        return 0;
+      }
+
       const csrfTokenMatch = /var\sSECURITYTOKEN\s=\s"([^"]+)";/.exec(
         editPageText,
       );
@@ -95,7 +155,10 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
         );
       }
       const csrfToken = csrfTokenMatch[1];
-      const postContent = `reason=&title=&message=${encodeURIComponent(content)}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=updatepost&p=${post.postId}&sbutton=Save+Changes&parseurl=1&emailupdate=1`;
+
+      const encodedContent = encodeContentForVbulletin(content);
+
+      const postBody = `reason=&title=&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=updatepost&p=${post.postId}&sbutton=Save+Changes&parseurl=1&emailupdate=1`;
 
       const updatePageRes = await fetch(updateUrl, {
         method: 'POST',
@@ -105,7 +168,7 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
           Cookie: `bbuserid=${bbuserid}; bbpassword=${bbpassword}`,
           Referer: editUrl,
         },
-        body: postContent,
+        body: postBody,
       });
       if (!updatePageRes.ok) {
         throw new Error(

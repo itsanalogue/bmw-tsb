@@ -333,7 +333,7 @@ export async function getTsbs(
 
     const issueId = latest.tsbID ?? latest.nhtsaID;
     let newData = false;
-    let files: TsbDataStore['files'][0] = [];
+    let files: TsbDataStore['files'][0] = dataStore.files[latest.nhtsaID];
 
     if (
       latest.manufacturerDate.localeCompare(dataStore.tsbDates[issueId] ?? '') >

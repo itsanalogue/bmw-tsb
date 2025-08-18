@@ -108,7 +108,7 @@ const writeForumEntry = (
     `[URL="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}"][B]${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}[/B][/URL] (${dateShortDisplay(date)})`,
   );
   for (const tsbModel of tsb.models) {
-    if (!isModelMatch([{ model: tsbModel.model }], modelSlice)) {
+    if (!isModelMatch([tsbModel], modelSlice)) {
       continue;
     }
     writer.writeLine(

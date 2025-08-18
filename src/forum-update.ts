@@ -14,37 +14,37 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32284226',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-IX/RECENT.txt',
+    contentPath: 'BMW-I20/RECENT.txt',
   },
   {
     postId: '32284227',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-IX/2022.txt',
+    contentPath: 'BMW-I20/2022.txt',
   },
   {
     postId: '32284230',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-IX/2023.txt',
+    contentPath: 'BMW-I20/2023.txt',
   },
   {
     postId: '32284231',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-IX/2024.txt',
+    contentPath: 'BMW-I20/2024.txt',
   },
   {
     postId: '32284233',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-IX/2025.txt',
+    contentPath: 'BMW-I20/2025.txt',
   },
   {
     postId: '32284235',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-IX/2026.txt',
+    contentPath: 'BMW-I20/2026.txt',
   },
   {
     postId: '32284236',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-IX/2027.txt',
+    contentPath: 'BMW-I20/2027.txt',
   },
 ];
 

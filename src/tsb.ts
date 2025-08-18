@@ -54,6 +54,16 @@ const NHTSA_TSB_ISSUES_ROOT =
   'https://api.nhtsa.gov/safetyIssues/byNhtsaId?name=&nhtsaId=';
 
 const TSB_SOURCES: TsbDataStore['sources'][0][] = [
+  // {
+  //   type: 'tsb',
+  //   fileBaseName: 'TSBS_RECEIVED_2010-2014',
+  //   active: false,
+  // },
+  // {
+  //   type: 'tsb',
+  //   fileBaseName: 'TSBS_RECEIVED_2015-2019',
+  //   active: false,
+  // },
   {
     type: 'tsb',
     fileBaseName: 'TSBS_RECEIVED_2020-2024',
@@ -276,6 +286,7 @@ export async function readTsbFiles(
             fileRecords.push(obj as TsbTextRow);
           }
         }
+        rl.close();
         await writeJson(jsonPath, fileRecords);
       } finally {
         if (fs.existsSync(txtPath)) {
@@ -283,7 +294,9 @@ export async function readTsbFiles(
         }
       }
     }
-    records.push(...fileRecords);
+    for (const record of fileRecords) {
+      records.push(record);
+    }
   }
 
   return records;

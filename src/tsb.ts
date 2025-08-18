@@ -347,7 +347,7 @@ export async function getTsbs(
     }
 
     const fetchDetails =
-      newData &&
+      (newData || files.length === 0) &&
       (isModelMatch(models, getDetailsForModels) ||
         latest.manufacturerDate.localeCompare(fetchOtherCutoff) > 0);
 

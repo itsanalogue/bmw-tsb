@@ -86,12 +86,14 @@ export const encodeContentForVbulletin = (s: string) => {
         out += '%0D';
         out += encodeURIComponent(ch);
         break;
+      case 0xba:
+        out += '%BA';
+        break;
+      case 0xdc:
+        out += '%DC';
+        break;
       default:
-        if (code < 0x80) {
-          out += encodeURIComponent(ch);
-        } else {
-          out += '%u' + code.toString(16).toUpperCase().padStart(4, '0');
-        }
+        out += encodeURIComponent(ch);
         break;
     }
   }

@@ -168,8 +168,8 @@ export async function resolveAssociatedDocuments(
     (r.recalls ?? [])
       .filter((c) => c.nhtsaCampaignNumber === nhtsaID)
       .flatMap((c) =>
-        c.associatedDocuments.filter(
-          (d) => d.summary === 'Remedy Instructions and TSB',
+        c.associatedDocuments.filter((d) =>
+          d.summary.startsWith('Remedy Instructions and TSB'),
         ),
       ),
   );

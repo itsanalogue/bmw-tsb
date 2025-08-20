@@ -4,7 +4,7 @@ permissions:
   actions: write # require to delete cache
 on:
   schedule:
-    - cron: '0 13 * * *'
+    - cron: '45 12 * * *'
   workflow_dispatch: {}
 env:
   VOLTA_FEATURE_PNPM: 1

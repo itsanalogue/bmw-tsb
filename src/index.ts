@@ -134,10 +134,15 @@ const writeForumEntry = (
 
 export async function processTsbs(make: string, models: string[]) {
   const modelSet = new Set(models);
-
+  const modelCounts = new Map<string, number>();
   const dataStore = readDatabase();
   const records = await readTsbFiles(dataStore, make);
   const tsbs = await getTsbs(dataStore, records, modelSet);
+
+  log.info(
+    `Found ${tsbs.length} ${make} service bulletins or recalls in NHTSA dataset.`,
+  );
+
   await saveDatabase(dataStore);
 
   const forumWriters = new Map<string, ReturnType<typeof createOutputWriter>>();
@@ -155,6 +160,7 @@ export async function processTsbs(make: string, models: string[]) {
     for (const model of models) {
       const modelSlice = new Set([model]);
       if (isModelMatch(tsb.models, modelSlice)) {
+        modelCounts.set(model, (modelCounts.get(model) ?? 0) + 1);
         const writerKey = `${tsbYear}-${model}`;
 
         let writer = forumWriters.get(writerKey);
@@ -168,6 +174,10 @@ export async function processTsbs(make: string, models: string[]) {
         writeForumEntry(writer, tsb, date, modelSlice);
       }
     }
+  }
+
+  for (const model of modelSet.values()) {
+    log.info(`Found ${modelCounts.get(model)} entries for ${model}`);
   }
 
   //Add reverse chronological forum output organized by model and new/recent

@@ -70,7 +70,7 @@ export function dateShortDisplay(date?: Date) {
 const recallDetails = (tsb: Tsb) => {
   let details = '';
   if (tsb.potentialNumberAffected) {
-    details += ` - Affecting ${tsb.potentialNumberAffected} total vehicles`;
+    details += ` affecting ${tsb.potentialNumberAffected} total vehicles`;
   }
   if (tsb.beginManufacture && tsb.endManufacture) {
     details += ` built between ${dateShortDisplay(parseTsbDate(tsb.beginManufacture))} and ${dateShortDisplay(parseTsbDate(tsb.endManufacture))}`;
@@ -107,12 +107,21 @@ const writeForumEntry = (
   writer.writeLine(
     `[URL="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}"][B]${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}[/B][/URL] (${dateShortDisplay(date)})`,
   );
+
+  const recallInfo = recallDetails(tsb);
+  const otherModels =
+    tsb.models.length > 2 ? ` plus ${tsb.models.length - 1} other models` : '';
+  const extraModelInfo =
+    otherModels.length > 0 || recallInfo.length > 0
+      ? ` (${otherModels}${recallInfo} )`
+      : '';
+
   for (const tsbModel of tsb.models) {
     if (!isModelMatch([tsbModel], modelSlice)) {
       continue;
     }
     writer.writeLine(
-      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${recallDetails(tsb)}`,
+      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${extraModelInfo}`,
     );
   }
   writer.writeLine(tsb.component.replace(/\:/g, ': '));
@@ -174,7 +183,7 @@ export async function processTsbs(make: string, models: string[]) {
     for (const model of models) {
       const modelSlice = new Set([model]);
 
-      if (tsb.newData) {
+      if (tsb.newData && isModelMatch(tsb.models, modelSlice)) {
         const writerKey = `NEW-${model}`;
         let writer = forumWriters.get(writerKey);
         if (!writer) {
@@ -185,7 +194,7 @@ export async function processTsbs(make: string, models: string[]) {
       }
 
       const recentCount = recentCountMap.get(model) ?? 0;
-      if (recentCount < 20) {
+      if (recentCount < 20 && isModelMatch(tsb.models, modelSlice)) {
         recentCountMap.set(model, recentCount + 1);
         const writerKey = `RECENT-${model}`;
         let writer = forumWriters.get(writerKey);

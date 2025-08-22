@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import log from './log.js';
-import type { TsbDataStore } from './database.js';
+import { saveDatabase, type TsbDataStore } from './database.js';
 import * as crypto from 'crypto';
 
 interface ForumPost {
@@ -224,6 +224,11 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
             //delay 15s on retries
             await new Promise((res) => global.setTimeout(res, 15000));
             continue;
+          }
+
+          if (updateCount > 0) {
+            //Save the database if we made any successful posts before throwing
+            await saveDatabase(dataStore);
           }
           throw error;
         }

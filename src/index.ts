@@ -228,9 +228,10 @@ export async function processTsbs(make: string, models: string[]) {
     } catch (error) {
       const errorMsg = `Failed to update forums for ${make} ${models}`;
       log.error(errorMsg, error);
+      const errorWithCause = error as Error & { cause?: { message: string } };
       await sendMessage({
         subject: errorMsg,
-        bodyText: `Failed to post updates to the forums: ${(error as Error).message}`,
+        bodyText: `Failed to post updates to the forums: ${errorWithCause.cause?.message ?? errorWithCause.message}`,
       });
     }
   }

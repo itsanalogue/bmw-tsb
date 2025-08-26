@@ -50,7 +50,7 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
   [
     'G22',
     {
-      modelNames: new Set(['430I', '330E', '440I']),
+      modelNames: new Set(['430I', '440I', 'M440I']),
       years: { from: 2020, to: 2027 },
     },
   ],

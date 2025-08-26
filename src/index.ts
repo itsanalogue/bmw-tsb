@@ -372,7 +372,10 @@ export async function processTsbs(make: string, models: string[]) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const make = 'BMW';
-  const models = (process.argv[2] ?? '').split(',').filter((s) => s.length > 0);
+  let models = (process.argv[2] ?? '').split(',').filter((s) => s.length > 0);
+  if (models.length === 0) {
+    models = [...MODEL_DEFINITIONS.keys()];
+  }
   try {
     await processTsbs(make, models);
   } catch (error) {

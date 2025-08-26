@@ -9,7 +9,6 @@ on:
     - cron: '45 12 * * *'
   workflow_dispatch: {}
 env:
-  CI: true
   VOLTA_FEATURE_PNPM: 1
 
 jobs:
@@ -66,7 +65,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs'
+          path: 'out/gh-pages'
 
       - name: Deploy to GitHub Pages
         id: deployment

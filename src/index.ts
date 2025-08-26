@@ -252,9 +252,7 @@ export async function processTsbs(make: string, models: string[]) {
       const ghWriterKey = `PAGES-${make}`;
       let pageWriter = ghPageWriters.get(ghWriterKey);
       if (!pageWriter) {
-        pageWriter = createOutputWriter(
-          `${process.env.CI ? '../docs' : 'gh-pages'}/index.html`,
-        );
+        pageWriter = createOutputWriter(`gh-pages/index.html`);
         ghPageWriters.set(ghWriterKey, pageWriter);
         writePageHeader(pageWriter, '');
         pageWriter.writeLine(
@@ -280,9 +278,7 @@ export async function processTsbs(make: string, models: string[]) {
         const ghWriterKey = `PAGES-${model}`;
         let pageWriter = ghPageWriters.get(ghWriterKey);
         if (!pageWriter) {
-          pageWriter = createOutputWriter(
-            `${process.env.CI ? '../docs' : 'gh-pages'}/${model}.html`,
-          );
+          pageWriter = createOutputWriter(`gh-pages/${model}.html`);
           ghPageWriters.set(ghWriterKey, pageWriter);
           writePageHeader(pageWriter, model);
           pageWriter.writeLine(

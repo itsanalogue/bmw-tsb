@@ -16,15 +16,20 @@ const FORUM_POSTS: ForumPost[] = [
     forumDomain: 'g05.bimmerpost.com',
     contentPath: 'BMW-G05/RECENT.txt',
   },
-  // {
-  //   postId: '32306416',
-  //   forumDomain: 'g07.bimmerpost.com',
-  //   contentPath: 'BMW-G07/RECENT.txt',
-  // },
+  {
+    postId: '32306416',
+    forumDomain: 'g07.bimmerpost.com',
+    contentPath: 'BMW-G07/RECENT.txt',
+  },
   {
     postId: '32306389',
     forumDomain: 'bmwi.bimmerpost.com',
     contentPath: 'BMW-G26/RECENT.txt',
+  },
+  {
+    postId: '32306477',
+    forumDomain: 'g45.bimmerpost.com',
+    contentPath: 'BMW-G45/RECENT.txt',
   },
   {
     postId: '32306455',

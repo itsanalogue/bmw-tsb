@@ -11,6 +11,7 @@ import type { Tsb } from './tsb.js';
 export const writePageHeader = (
   writer: ReturnType<typeof createOutputWriter>,
   model: string,
+  modelSet: Set<string>,
 ) => {
   writer.writeLine(`
     <html>
@@ -59,8 +60,12 @@ export const writePageHeader = (
             }
             .modelLink {
                 font-size: 20px;
-                font-weight: bold;
                 margin-right: 10px;    
+            }
+            .modelLinkSelected {
+                font-size: 20px;
+                margin-right: 10px;    
+                font-weight: bold;
             }
         </style>
     </head>
@@ -76,6 +81,18 @@ export const writePageHeader = (
     <body>
         <h1>BMW ${model} Service Bulletins</h1>
         <hr/>
+        
+          <div><span class="modelLink">By Model:</span><span class=${model === '' ? 'modelLinkSelected' : 'modelLink'}><a href="index.html">ALL</a></span>${[
+            ...modelSet,
+          ]
+            .sort()
+            .map(
+              (m) =>
+                `<span class=${m === model ? 'modelLinkSelected' : 'modelLink'}><a href="${m}.html">${m}</a></span>`,
+            )
+            .join('')}
+          <hr/>
+          </div>
         <div>
             <dl>`);
 };

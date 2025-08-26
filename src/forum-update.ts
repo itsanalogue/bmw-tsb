@@ -12,6 +12,11 @@ interface ForumPost {
 const VBULLETIN_VERSION = '3.8.11';
 const FORUM_POSTS: ForumPost[] = [
   {
+    postId: '32306416',
+    forumDomain: 'g07.bimmerpost.com',
+    contentPath: 'BMW-G07/RECENT.txt',
+  },
+  {
     postId: '32306389',
     forumDomain: 'bmwi.bimmerpost.com',
     contentPath: 'BMW-G26/RECENT.txt',

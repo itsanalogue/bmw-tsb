@@ -7,7 +7,13 @@ permissions:
 on:
   schedule:
     - cron: '45 12 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish-pages:
+        description: 'Publish to GitHub Pages'
+        required: false
+        default: false
+        type: boolean
 env:
   VOLTA_FEATURE_PNPM: 1
 
@@ -82,18 +88,17 @@ jobs:
         with:
           key: datastore-${{ runner.os }}
           path: data
-
       - name: Setup Pages
-        if: ${{ hashFiles('out/gh-pages/new.html') != '' }}
+        if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        if: ${{ hashFiles('out/gh-pages/new.html') != '' }}
+        if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'out/gh-pages'
 
       - name: Deploy to GitHub Pages
-        if: ${{ hashFiles('out/gh-pages/new.html') != '' }}
+        if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
         id: deployment
         uses: actions/deploy-pages@v4

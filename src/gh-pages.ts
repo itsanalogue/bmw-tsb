@@ -63,6 +63,15 @@ export const writePageHeader = (
             }
         </style>
     </head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YMSCSBZQ3D"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-YMSCSBZQ3D');
+    </script>
     <body>
         <h1>BMW ${model} Service Bulletins</h1>
         <hr/>

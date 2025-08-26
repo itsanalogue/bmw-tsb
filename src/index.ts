@@ -253,7 +253,7 @@ export async function processTsbs(make: string, models: string[]) {
       let pageWriter = ghPageWriters.get(ghWriterKey);
       if (!pageWriter) {
         pageWriter = createOutputWriter(
-          `${process.env.CI ? '../' : ''}gh-pages/index.html`,
+          `${process.env.CI ? '../docs' : 'gh-pages'}/index.html`,
         );
         ghPageWriters.set(ghWriterKey, pageWriter);
         writePageHeader(pageWriter, '');
@@ -281,7 +281,7 @@ export async function processTsbs(make: string, models: string[]) {
         let pageWriter = ghPageWriters.get(ghWriterKey);
         if (!pageWriter) {
           pageWriter = createOutputWriter(
-            `${process.env.CI ? '../' : ''}gh-pages/${model}.html`,
+            `${process.env.CI ? '../docs' : 'gh-pages'}/${model}.html`,
           );
           ghPageWriters.set(ghWriterKey, pageWriter);
           writePageHeader(pageWriter, model);

@@ -76,16 +76,19 @@ export const writeSibEntry = (
   date: Date,
   modelSlice: Set<string>,
 ) => {
-  writer.writeLine(`
-            <dt class="dtHead"><a href="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}" target="offsite">${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}</a>  (${dateShortDisplay(date)})</dt>
-        `);
+  writer.writeLine('');
+  writer.writeLine(
+    `<dt class="dtHead"><a href="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}" target="offsite">${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}</a>  (${dateShortDisplay(date)})</dt>`,
+  );
 
   const recallInfo = recallDetails(tsb);
+  if (recallInfo.length > 0) {
+    writer.writeLine(`<dt><b>${recallInfo}</b></dt>`);
+  }
+
   const otherModels =
-    tsb.models.length > 2 ? ` plus ${tsb.models.length - 1} other models` : '';
-  const extraModelInfo =
-    otherModels.length > 0 || recallInfo.length > 0
-      ? ` (${otherModels}${recallInfo} )`
+    tsb.models.length > modelSlice.size
+      ? ` (plus ${tsb.models.length - 1} other models)`
       : '';
 
   for (const tsbModel of tsb.models) {
@@ -93,7 +96,7 @@ export const writeSibEntry = (
       continue;
     }
     writer.writeLine(
-      `<dt>${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${extraModelInfo}</dt>`,
+      `<dt>${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${otherModels}</dt>`,
     );
   }
   writer.writeLine(`<dt class="dtFoot"><b>${tsb.component}</b></dt>`);

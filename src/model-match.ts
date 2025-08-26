@@ -5,18 +5,53 @@ interface ModelDefinition {
 
 const IGNORE_MODEL_VARIANTS = new Set(['IX M60']);
 
-const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
+export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
+  [
+    'G01',
+    {
+      modelNames: new Set(['X3', 'X4']),
+      years: { from: 2018, to: 2024 },
+    },
+  ],
+  [
+    'G05',
+    {
+      modelNames: new Set(['X5', 'X6']),
+      years: { from: 2019, to: 2026 },
+    },
+  ],
   [
     'G07',
     {
       modelNames: new Set(['X7', 'XB7', 'ALPINA XB7']),
-      years: { from: 2019 },
+      years: { from: 2019, to: 2027 },
     },
   ],
   [
     'G09',
     {
       modelNames: new Set(['XM']),
+    },
+  ],
+  [
+    'G14',
+    {
+      modelNames: new Set(['M8', '840I']),
+      years: { from: 2020, to: 2026 },
+    },
+  ],
+  [
+    'G20',
+    {
+      modelNames: new Set(['330I', '330E', '340I']),
+      years: { from: 2019, to: 2026 },
+    },
+  ],
+  [
+    'G22',
+    {
+      modelNames: new Set(['430I', '330E', '440I']),
+      years: { from: 2020, to: 2027 },
     },
   ],
   [
@@ -27,10 +62,31 @@ const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
     },
   ],
   [
+    'G29',
+    {
+      modelNames: new Set(['Z4']),
+      years: { from: 2019, to: 2026 },
+    },
+  ],
+  [
+    'G42',
+    {
+      modelNames: new Set(['228I', '230I', '240I', 'M240I', 'M235I']),
+      years: { from: 2022 },
+    },
+  ],
+  [
+    'G45',
+    {
+      modelNames: new Set(['X3']),
+      years: { from: 2025 },
+    },
+  ],
+  [
     'G60',
     {
-      modelNames: new Set(['I5', '540I', '530I']),
-      years: { from: 2024 },
+      modelNames: new Set(['I5', '540I', '530I', '5 SERIES']),
+      years: { from: 2024, to: 2030 },
     },
   ],
   [

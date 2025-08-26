@@ -3,8 +3,9 @@ import { readDatabase, saveDatabase } from './database.js';
 import { createOutputWriter } from './output.js';
 import { sendMessage } from './email.js';
 import log from './log.js';
-import { isModelMatch } from './model-match.js';
+import { isModelMatch, MODEL_DEFINITIONS } from './model-match.js';
 import { updateForumPosts } from './forum-update.js';
+import { writePageFooter, writePageHeader, writeSibEntry } from './gh-pages.js';
 
 export function parseTsbDate(
   input: string | undefined | null,
@@ -67,7 +68,7 @@ export function dateShortDisplay(date?: Date) {
   return date.toISOString().split('T')[0];
 }
 
-const recallDetails = (tsb: Tsb) => {
+export const recallDetails = (tsb: Tsb) => {
   let details = '';
   if (tsb.potentialNumberAffected) {
     details += ` affecting ${tsb.potentialNumberAffected} total vehicles`;
@@ -165,7 +166,7 @@ export async function processTsbs(make: string, models: string[]) {
 
         let writer = forumWriters.get(writerKey);
         if (!writer) {
-          writer = createOutputWriter(make, model, `${tsbYear}.txt`);
+          writer = createOutputWriter(`${make}-${model}/${tsbYear}.txt`);
           writer.writeLine(`[B][SIZE="5"]${tsbYear}[/SIZE][/B]`);
           writer.writeLine('');
           forumWriters.set(writerKey, writer);
@@ -193,28 +194,30 @@ export async function processTsbs(make: string, models: string[]) {
     for (const model of models) {
       const modelSlice = new Set([model]);
 
-      if (tsb.newData && isModelMatch(tsb.models, modelSlice)) {
-        const writerKey = `NEW-${model}`;
-        let writer = forumWriters.get(writerKey);
-        if (!writer) {
-          writer = createOutputWriter(make, model, `NEW.txt`);
-          forumWriters.set(writerKey, writer);
+      if (isModelMatch(tsb.models, modelSlice)) {
+        if (tsb.newData) {
+          const writerKey = `NEW-${model}`;
+          let writer = forumWriters.get(writerKey);
+          if (!writer) {
+            writer = createOutputWriter(`${make}-${model}/NEW.txt`);
+            forumWriters.set(writerKey, writer);
+          }
+          writeForumEntry(writer, tsb, date, modelSlice);
         }
-        writeForumEntry(writer, tsb, date, modelSlice);
-      }
 
-      const recentCount = recentCountMap.get(model) ?? 0;
-      if (recentCount < 20 && isModelMatch(tsb.models, modelSlice)) {
-        recentCountMap.set(model, recentCount + 1);
-        const writerKey = `RECENT-${model}`;
-        let writer = forumWriters.get(writerKey);
-        if (!writer) {
-          writer = createOutputWriter(make, model, `RECENT.txt`);
-          writer.writeLine(`[B][SIZE="5"]Recent Bulletins[/SIZE][/B]`);
-          writer.writeLine('');
-          forumWriters.set(writerKey, writer);
+        const recentCount = recentCountMap.get(model) ?? 0;
+        if (recentCount < 20) {
+          recentCountMap.set(model, recentCount + 1);
+          const writerKey = `RECENT-${model}`;
+          let writer = forumWriters.get(writerKey);
+          if (!writer) {
+            writer = createOutputWriter(`${make}-${model}/RECENT.txt`);
+            writer.writeLine(`[B][SIZE="5"]Recent Bulletins[/SIZE][/B]`);
+            writer.writeLine('');
+            forumWriters.set(writerKey, writer);
+          }
+          writeForumEntry(writer, tsb, date, modelSlice);
         }
-        writeForumEntry(writer, tsb, date, modelSlice);
       }
     }
   }
@@ -227,6 +230,77 @@ export async function processTsbs(make: string, models: string[]) {
   log.info(
     `Wrote TSB forum output for ${make} ${models} to ${forumWriters.size} files.`,
   );
+
+  const modelsForGhPages = new Set(MODEL_DEFINITIONS.keys());
+
+  const ghPageWriters = new Map<
+    string,
+    ReturnType<typeof createOutputWriter>
+  >();
+
+  for (const tsb of tsbs
+    .filter((t) => isModelMatch(t.models, modelsForGhPages))
+    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
+    const date =
+      parseTsbDate(tsb.manufacturerDate) ??
+      parseTsbDate(tsb.nhtsaDate) ??
+      new Date();
+
+    const recentCountAll = recentCountMap.get(make) ?? 0;
+    if (recentCountAll < 500) {
+      recentCountMap.set(make, recentCountAll + 1);
+      const ghWriterKey = `PAGES-${make}`;
+      let pageWriter = ghPageWriters.get(ghWriterKey);
+      if (!pageWriter) {
+        pageWriter = createOutputWriter(
+          `${process.env.CI ? '../' : ''}gh-pages/index.html`,
+        );
+        ghPageWriters.set(ghWriterKey, pageWriter);
+        writePageHeader(pageWriter, '');
+        pageWriter.writeLine(
+          `<div><span class="modelLink">By Model:</span>${[...modelsForGhPages]
+            .sort()
+            .map(
+              (m) =>
+                `<span class=modelLink><a href="${m}.html">${m}</a></span>`,
+            )
+            .join('')}<hr/><h2>Recent</h2></div>`,
+        );
+      }
+      writeSibEntry(
+        pageWriter,
+        tsb,
+        date,
+        new Set(tsb.models.map((m) => m.model)),
+      );
+    }
+    for (const model of [...modelsForGhPages]) {
+      const modelSlice = new Set([model]);
+      if (isModelMatch(tsb.models, modelSlice)) {
+        const ghWriterKey = `PAGES-${model}`;
+        let pageWriter = ghPageWriters.get(ghWriterKey);
+        if (!pageWriter) {
+          pageWriter = createOutputWriter(
+            `${process.env.CI ? '../' : ''}gh-pages/${model}.html`,
+          );
+          ghPageWriters.set(ghWriterKey, pageWriter);
+          writePageHeader(pageWriter, model);
+          pageWriter.writeLine(
+            `<div><span class=modelLink><a href="index.html">All Models</a></span><hr/></div>`,
+          );
+        }
+        writeSibEntry(pageWriter, tsb, date, modelSlice);
+      }
+    }
+  }
+
+  // Close all gh-page file writers
+  for (const writer of ghPageWriters.values()) {
+    writePageFooter(writer);
+    await writer.end();
+  }
+
+  log.info(`Wrote gh-pages output for ${make} to ${ghPageWriters.size} files.`);
 
   if (forumWriters.size > 0) {
     try {

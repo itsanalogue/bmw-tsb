@@ -246,6 +246,20 @@ export async function processTsbs(make: string, models: string[]) {
       parseTsbDate(tsb.nhtsaDate) ??
       new Date();
 
+    if (tsb.newData) {
+      const writerKey = `PAGES-NEW-${make}`;
+      let writer = ghPageWriters.get(writerKey);
+      if (!writer) {
+        writer = createOutputWriter(`gh-pages/new.html`);
+        ghPageWriters.set(writerKey, writer);
+        writePageHeader(writer, 'New');
+        writer.writeLine(
+          `<div><span class=modelLink><a href="index.html">All Models</a></span><hr/></div>`,
+        );
+      }
+      writeSibEntry(writer, tsb, date, new Set(tsb.models.map((m) => m.model)));
+    }
+
     const recentCountAll = recentCountMap.get(make) ?? 0;
     if (recentCountAll < 500) {
       recentCountMap.set(make, recentCountAll + 1);

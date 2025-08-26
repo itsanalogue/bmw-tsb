@@ -103,6 +103,13 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
       years: { from: 2022 },
     },
   ],
+  [
+    'U11',
+    {
+      modelNames: new Set(['X1','X2']),
+      years: { from: 2023 },
+    },
+  ],
 ]);
 
 export const isModelMatch = (

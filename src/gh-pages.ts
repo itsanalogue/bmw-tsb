@@ -15,6 +15,7 @@ export const writePageHeader = (
   writer.writeLine(`
     <html>
     <head>
+        <meta name="google-site-verification" content="HScbMG7aOOk4Y2jsTrsQxHC6bvbEMw76JaXmxbNumhg" />
         <title>BMW ${model} Service Bulletins</title>        
         <style>
             body {

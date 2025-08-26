@@ -252,10 +252,7 @@ export async function processTsbs(make: string, models: string[]) {
       if (!writer) {
         writer = createOutputWriter(`gh-pages/new.html`);
         ghPageWriters.set(writerKey, writer);
-        writePageHeader(writer, 'New');
-        writer.writeLine(
-          `<div><span class=modelLink><a href="index.html">All Models</a></span><hr/></div>`,
-        );
+        writePageHeader(writer, 'New', modelsForGhPages);
       }
       writeSibEntry(writer, tsb, date, new Set(tsb.models.map((m) => m.model)));
     }
@@ -268,16 +265,7 @@ export async function processTsbs(make: string, models: string[]) {
       if (!pageWriter) {
         pageWriter = createOutputWriter(`gh-pages/index.html`);
         ghPageWriters.set(ghWriterKey, pageWriter);
-        writePageHeader(pageWriter, '');
-        pageWriter.writeLine(
-          `<div><span class="modelLink">By Model:</span>${[...modelsForGhPages]
-            .sort()
-            .map(
-              (m) =>
-                `<span class=modelLink><a href="${m}.html">${m}</a></span>`,
-            )
-            .join('')}<hr/><h2>Recent</h2></div>`,
-        );
+        writePageHeader(pageWriter, '', modelsForGhPages);
       }
       writeSibEntry(
         pageWriter,
@@ -294,10 +282,7 @@ export async function processTsbs(make: string, models: string[]) {
         if (!pageWriter) {
           pageWriter = createOutputWriter(`gh-pages/${model}.html`);
           ghPageWriters.set(ghWriterKey, pageWriter);
-          writePageHeader(pageWriter, model);
-          pageWriter.writeLine(
-            `<div><span class=modelLink><a href="index.html">All Models</a></span><hr/></div>`,
-          );
+          writePageHeader(pageWriter, model, modelsForGhPages);
         }
         writeSibEntry(pageWriter, tsb, date, modelSlice);
       }

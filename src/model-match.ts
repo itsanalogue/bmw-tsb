@@ -106,7 +106,7 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
   [
     'U11',
     {
-      modelNames: new Set(['X1','X2']),
+      modelNames: new Set(['X1', 'X2']),
       years: { from: 2023 },
     },
   ],

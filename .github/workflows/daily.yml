@@ -59,18 +59,6 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: pnpm start I20
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'out/gh-pages'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
       - name: Ensure out exists
         run: mkdir -p out
 
@@ -94,3 +82,18 @@ jobs:
         with:
           key: datastore-${{ runner.os }}
           path: data
+
+      - name: Setup Pages
+        if: ${{ hashFiles('out/gh-pages/new.html') != '' }}
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        if: ${{ hashFiles('out/gh-pages/new.html') != '' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'out/gh-pages'
+
+      - name: Deploy to GitHub Pages
+        if: ${{ hashFiles('out/gh-pages/new.html') != '' }}
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -206,7 +206,7 @@ export async function processTsbs(make: string, models: string[]) {
         }
 
         const recentCount = recentCountMap.get(model) ?? 0;
-        if (recentCount < 20) {
+        if (recentCount < 30) {
           recentCountMap.set(model, recentCount + 1);
           const writerKey = `RECENT-${model}`;
           let writer = forumWriters.get(writerKey);

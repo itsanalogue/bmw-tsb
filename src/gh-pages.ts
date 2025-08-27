@@ -22,8 +22,8 @@ export const writePageHeader = (
             body {
                 color:#414141;
                 font-family: Helvetica Neue,-apple-system,"system-ui",serif;                
-                margin-left: 20%;
-                margin-right: 20%;
+                margin-left: 15%;
+                margin-right: 15%;
             }
 
             hr {
@@ -57,6 +57,10 @@ export const writePageHeader = (
 
             .dtFoot {
                 margin-top: 10px;
+            }
+            .dtRecall {
+                font-weight: bold;
+                margin-bottom: 10px;
             }
             .modelLink {
                 font-size: 20px;
@@ -110,20 +114,23 @@ export const writeSibEntry = (
 
   const recallInfo = recallDetails(tsb);
   if (recallInfo.length > 0) {
-    writer.writeLine(`<dt><b>${recallInfo}</b></dt>`);
+    writer.writeLine(`<dt class="dtRecall">${recallInfo}</dt>`);
   }
 
-  const otherModels =
-    tsb.models.length > modelSlice.size
-      ? ` (plus ${tsb.models.length - 1} other models)`
-      : '';
+  let otherModels = 0;
 
   for (const tsbModel of tsb.models) {
     if (!isModelMatch([tsbModel], modelSlice)) {
+      otherModels++;
       continue;
     }
     writer.writeLine(
-      `<dt>${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${otherModels}</dt>`,
+      `<dt>${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}</dt>`,
+    );
+  }
+  if (otherModels > 0) {
+    writer.writeLine(
+      `<dt>(plus ${tsb.models.length - 1} other model${otherModels === 1 ? '' : 's'})</dt>`,
     );
   }
   writer.writeLine(`<dt class="dtFoot"><b>${tsb.component}</b></dt>`);

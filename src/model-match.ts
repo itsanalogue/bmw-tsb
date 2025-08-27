@@ -1,6 +1,5 @@
 interface ModelDefinition {
-  modelNames: Set<string>;
-  years?: { from: number; to?: number };
+  models: Map<string, { startYear: number; endYear?: number }>;
 }
 
 const IGNORE_MODEL_VARIANTS = new Set(['IX M60']);
@@ -9,105 +8,123 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
   [
     'G01',
     {
-      modelNames: new Set(['X3', 'X4']),
-      years: { from: 2018, to: 2024 },
+      models: new Map([
+        ['X3', { startYear: 2018, endYear: 2024 }],
+        ['X4', { startYear: 2018, endYear: 2024 }],
+      ]),
     },
   ],
   [
     'G05',
     {
-      modelNames: new Set(['X5', 'X6']),
-      years: { from: 2019, to: 2026 },
+      models: new Map([
+        ['X5', { startYear: 2019, endYear: 2026 }],
+        ['X6', { startYear: 2019, endYear: 2026 }],
+      ]),
     },
   ],
   [
     'G07',
     {
-      modelNames: new Set(['X7', 'XB7', 'ALPINA XB7']),
-      years: { from: 2019, to: 2027 },
+      models: new Map([
+        ['X7', { startYear: 2019, endYear: 2027 }],
+        ['XB7', { startYear: 2019, endYear: 2027 }],
+        ['ALPINA XB7', { startYear: 2019, endYear: 2027 }],
+      ]),
     },
   ],
   [
     'G09',
     {
-      modelNames: new Set(['XM']),
+      models: new Map([['XM', { startYear: 2023, endYear: 2027 }]]),
     },
   ],
   [
     'G14',
     {
-      modelNames: new Set(['M8', '840I']),
-      years: { from: 2020, to: 2026 },
+      models: new Map([
+        ['M8', { startYear: 2020, endYear: 2026 }],
+        ['840I', { startYear: 2020, endYear: 2026 }],
+      ]),
     },
   ],
   [
     'G20',
     {
-      modelNames: new Set(['330I', '330E', '340I', 'M340I']),
-      years: { from: 2019, to: 2026 },
-    },
-  ],
-  [
-    'G22',
-    {
-      modelNames: new Set(['430I', '440I', 'M440I']),
-      years: { from: 2020, to: 2027 },
+      models: new Map([
+        ['330I', { startYear: 2019, endYear: 2026 }],
+        ['330E', { startYear: 2019, endYear: 2026 }],
+        ['340I', { startYear: 2019, endYear: 2026 }],
+        ['M340I', { startYear: 2019, endYear: 2026 }],
+        ['430I', { startYear: 2021, endYear: 2028 }],
+        ['M440I', { startYear: 2021, endYear: 2028 }],
+      ]),
     },
   ],
   [
     'G26',
     {
-      modelNames: new Set(['I4']),
-      years: { from: 2022 },
+      models: new Map([['I4', { startYear: 2022, endYear: 2028 }]]),
     },
   ],
   [
     'G29',
     {
-      modelNames: new Set(['Z4']),
-      years: { from: 2019, to: 2026 },
+      models: new Map([['Z4', { startYear: 2019, endYear: 2026 }]]),
     },
   ],
   [
     'G42',
     {
-      modelNames: new Set(['228I', '230I', '240I', 'M240I', 'M235I']),
-      years: { from: 2022 },
+      models: new Map([
+        ['228I', { startYear: 2022, endYear: 2028 }],
+        ['230I', { startYear: 2022, endYear: 2028 }],
+        ['240I', { startYear: 2022, endYear: 2028 }],
+        ['M240I', { startYear: 2022, endYear: 2028 }],
+        ['M235I', { startYear: 2022, endYear: 2028 }],
+      ]),
     },
   ],
   [
     'G45',
     {
-      modelNames: new Set(['X3']),
-      years: { from: 2025 },
+      models: new Map([['X3', { startYear: 2025, endYear: 2031 }]]),
     },
   ],
   [
     'G60',
     {
-      modelNames: new Set(['I5', '540I', '530I', '5 SERIES']),
-      years: { from: 2024, to: 2030 },
+      models: new Map([
+        ['I5', { startYear: 2024, endYear: 2030 }],
+        ['540I', { startYear: 2024, endYear: 2030 }],
+        ['530I', { startYear: 2024, endYear: 2030 }],
+        ['5 SERIES', { startYear: 2024, endYear: 2030 }],
+      ]),
     },
   ],
   [
     'G70',
     {
-      modelNames: new Set(['I7', '760I', '740I']),
-      years: { from: 2023 },
+      models: new Map([
+        ['I7', { startYear: 2023, endYear: 2029 }],
+        ['760I', { startYear: 2023, endYear: 2029 }],
+        ['740I', { startYear: 2023, endYear: 2029 }],
+      ]),
     },
   ],
   [
     'I20',
     {
-      modelNames: new Set(['IX']),
-      years: { from: 2022 },
+      models: new Map([['IX', { startYear: 2022, endYear: 2028 }]]),
     },
   ],
   [
     'U11',
     {
-      modelNames: new Set(['X1', 'X2']),
-      years: { from: 2023 },
+      models: new Map([
+        ['X1', { startYear: 2023, endYear: 2029 }],
+        ['X2', { startYear: 2023, endYear: 2029 }],
+      ]),
     },
   ],
 ]);
@@ -118,36 +135,33 @@ export const isModelMatch = (
 ): boolean => {
   for (const modelToMatch of modelsToMatch.values()) {
     const modelDef = MODEL_DEFINITIONS.get(modelToMatch) ?? {
-      modelNames: new Set([modelToMatch]),
+      models: new Map([
+        [modelToMatch, { startYear: 2000, endYear: undefined }],
+      ]),
     };
 
     for (const tsbModel of tsbModelInfo) {
-      let hasModelMatch = false;
-      if (!IGNORE_MODEL_VARIANTS.has(tsbModel.model)) {
-        if (modelDef.modelNames.has(tsbModel.model)) {
-          hasModelMatch = true;
-        }
-        if (
-          [...modelDef.modelNames].some((mn) => tsbModel.model.startsWith(mn))
-        ) {
-          hasModelMatch = true;
+      if (IGNORE_MODEL_VARIANTS.has(tsbModel.model)) {
+        continue;
+      }
+      let modelEntry = modelDef.models.get(tsbModel.model);
+      if (!modelEntry) {
+        const partialKeyMatch = [...modelDef.models.keys()].find((k) =>
+          tsbModel.model.startsWith(k),
+        );
+        if (partialKeyMatch) {
+          modelEntry = modelDef.models.get(partialKeyMatch);
         }
       }
-      let hasYearMatch = false;
-      if (!modelDef.years) {
-        hasYearMatch = true;
-      } else {
+      if (modelEntry) {
         for (const tsbYear of tsbModel.years.values()) {
           if (
-            Number(tsbYear) >= modelDef.years.from &&
-            (!modelDef.years.to || Number(tsbYear) <= modelDef.years.to)
+            Number(tsbYear) >= modelEntry.startYear &&
+            (!modelEntry.endYear || Number(tsbYear) <= modelEntry.endYear)
           ) {
-            hasYearMatch = true;
+            return true;
           }
         }
-      }
-      if (hasModelMatch && hasYearMatch) {
-        return true;
       }
     }
   }

@@ -116,7 +116,9 @@ const writeForumEntry = (
 
   let otherModels = 0;
 
-  for (const tsbModel of tsb.models) {
+  for (const tsbModel of tsb.models.sort((a, b) =>
+    a.model.localeCompare(b.model),
+  )) {
     if (!isModelMatch([tsbModel], modelSlice)) {
       otherModels++;
       continue;
@@ -128,7 +130,7 @@ const writeForumEntry = (
 
   if (otherModels > 0) {
     writer.writeLine(
-      `(plus ${tsb.models.length - 1} other model${otherModels === 1 ? '' : 's'})`,
+      `(plus ${otherModels} other model${otherModels === 1 ? '' : 's'})`,
     );
   }
 

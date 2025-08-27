@@ -4,7 +4,7 @@ import {
   recallIdDisplay,
   sibIdDisplay,
 } from './index.js';
-import { isModelMatch } from './model-match.js';
+import { isModelMatch, MODEL_DEFINITIONS } from './model-match.js';
 import type { createOutputWriter } from './output.js';
 import type { Tsb } from './tsb.js';
 
@@ -13,6 +13,13 @@ export const writePageHeader = (
   model: string,
   modelSet: Set<string>,
 ) => {
+  const modelOptions = [...modelSet]
+    .sort()
+    .map(
+      (m) =>
+        `<option value="${m}.html"${m === model ? ' selected' : ''}>${m} (${[...(MODEL_DEFINITIONS.get(m)?.models?.keys() ?? [])].join(', ')})</option>`,
+    )
+    .join('');
   writer.writeLine(`
     <html>
     <head>
@@ -63,12 +70,18 @@ export const writePageHeader = (
                 margin-bottom: 10px;
             }
             .modelLink {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
                 font-size: 20px;
-                margin-right: 10px;    
+                margin-right: 10px;
             }
             .modelLinkSelected {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
                 font-size: 20px;
-                margin-right: 10px;    
+                margin-right: 10px;
                 font-weight: bold;
             }
         </style>
@@ -86,16 +99,14 @@ export const writePageHeader = (
         <h1>BMW ${model} Service Bulletins</h1>
         <hr/>
         
-          <div><span class="modelLink">By Model:</span><span class=${model === '' ? 'modelLinkSelected' : 'modelLink'}><a href="index.html">ALL</a></span>${[
-            ...modelSet,
-          ]
-            .sort()
-            .map(
-              (m) =>
-                `<span class=${m === model ? 'modelLinkSelected' : 'modelLink'}><a href="${m}.html">${m}</a></span>`,
-            )
-            .join('')}
-          <hr/>
+          <div>
+            <label class="modelLink">MODEL:
+              <select id="modelSelect" onchange="if(this.value) window.location.href=this.value">
+                <option value="index.html"${model === '' ? ' selected' : ''}>ALL</option>
+                ${modelOptions}
+              </select>
+            </label>
+            <hr/>
           </div>
         <div>
             <dl>`);

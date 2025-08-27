@@ -84,6 +84,10 @@ export const writePageHeader = (
                 margin-right: 10px;
                 font-weight: bold;
             }
+      .modelLink select, .modelLinkSelected select {
+        font-size: 18px;
+        padding: 4px 8px;
+      }
         </style>
     </head>
     <!-- Google tag (gtag.js) -->

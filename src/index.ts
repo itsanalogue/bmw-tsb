@@ -71,7 +71,7 @@ export function dateShortDisplay(date?: Date) {
 export const recallDetails = (tsb: Tsb) => {
   let details = '';
   if (tsb.potentialNumberAffected) {
-    details += ` affecting ${tsb.potentialNumberAffected} total vehicles`;
+    details += `Affecting ${tsb.potentialNumberAffected} total vehicles`;
   }
   if (tsb.beginManufacture && tsb.endManufacture) {
     details += ` built between ${dateShortDisplay(parseTsbDate(tsb.beginManufacture))} and ${dateShortDisplay(parseTsbDate(tsb.endManufacture))}`;
@@ -110,21 +110,28 @@ const writeForumEntry = (
   );
 
   const recallInfo = recallDetails(tsb);
-  const otherModels =
-    tsb.models.length > 2 ? ` plus ${tsb.models.length - 1} other models` : '';
-  const extraModelInfo =
-    otherModels.length > 0 || recallInfo.length > 0
-      ? ` (${otherModels}${recallInfo} )`
-      : '';
+  if (recallInfo.length > 0) {
+    writer.writeLine(`[B]${recallInfo}[/B]`);
+  }
+
+  let otherModels = 0;
 
   for (const tsbModel of tsb.models) {
     if (!isModelMatch([tsbModel], modelSlice)) {
+      otherModels++;
       continue;
     }
     writer.writeLine(
-      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${extraModelInfo}`,
+      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}`,
     );
   }
+
+  if (otherModels > 0) {
+    writer.writeLine(
+      `(plus ${tsb.models.length - 1} other model${otherModels === 1 ? '' : 's'})`,
+    );
+  }
+
   writer.writeLine(tsb.component.replace(/\:/g, ': '));
   writer.writeLine(`${tsb.summary}`);
   for (const att of tsb.files) {

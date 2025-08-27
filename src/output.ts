@@ -5,6 +5,8 @@ export const createOutputWriter = (
   fileName: string,
   opts?: { append?: boolean },
 ) => {
+  let lengthWritten = 0;
+
   const dataDir = path.resolve(
     decodeURI(new URL(`../out`, import.meta.url).pathname),
   );
@@ -19,8 +21,13 @@ export const createOutputWriter = (
   });
 
   return {
-    writeLine: (line: string) =>
-      stream.write(line.endsWith('\n') ? line : line + '\n'),
+    lengthWritten: () => lengthWritten,
+    writeLine: (line: string) => {
+      const terminated = line.endsWith('\n');
+      stream.write(terminated ? line : line + '\n');
+      lengthWritten += line.length;
+      lengthWritten += terminated ? 0 : 1;
+    },
     end: () =>
       new Promise<void>((resolve, reject) => {
         stream.end(() => resolve());

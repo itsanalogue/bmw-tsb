@@ -203,14 +203,14 @@ export async function processTsbs(make: string, models: string[]) {
       parseTsbDate(tsb.nhtsaDate) ??
       new Date();
 
-    const recentCountAll = recentCountMap.get(make) ?? 0;
+    const allWriterKey = `ALL-${make}`;
+    const recentCountAll = recentCountMap.get(allWriterKey) ?? 0;
     if (recentCountAll < 500) {
-      recentCountMap.set(make, recentCountAll + 1);
-      const writerKey = `ALL-${make}`;
-      let allWriter = forumWriters.get(writerKey);
+      recentCountMap.set(allWriterKey, recentCountAll + 1);
+      let allWriter = forumWriters.get(allWriterKey);
       if (!allWriter) {
         allWriter = createOutputWriter(`${make}/ALL.txt`);
-        forumWriters.set(writerKey, allWriter);
+        forumWriters.set(allWriterKey, allWriter);
         allWriter.writeLine(`[B][SIZE="5"]Recent Bulletins[/SIZE][/B]`);
         allWriter.writeLine('');
       }
@@ -240,10 +240,10 @@ export async function processTsbs(make: string, models: string[]) {
           }
         }
 
-        const recentCount = recentCountMap.get(model) ?? 0;
+        const writerKey = `RECENT-${model}`;
+        const recentCount = recentCountMap.get(writerKey) ?? 0;
         if (recentCount < 100) {
-          recentCountMap.set(model, recentCount + 1);
-          const writerKey = `RECENT-${model}`;
+          recentCountMap.set(writerKey, recentCount + 1);
           let writer = forumWriters.get(writerKey);
           if (!writer) {
             writer = createOutputWriter(`${make}-${model}/RECENT.txt`);
@@ -296,14 +296,14 @@ export async function processTsbs(make: string, models: string[]) {
     if (recentCountAll < 500) {
       recentCountMap.set(make, recentCountAll + 1);
       const ghWriterKey = `PAGES-${make}`;
-      let pageWriter = ghPageWriters.get(ghWriterKey);
-      if (!pageWriter) {
-        pageWriter = createOutputWriter(`gh-pages/index.html`);
-        ghPageWriters.set(ghWriterKey, pageWriter);
-        writePageHeader(pageWriter, '', allConfiguredModels);
+      let allWriter = ghPageWriters.get(ghWriterKey);
+      if (!allWriter) {
+        allWriter = createOutputWriter(`gh-pages/index.html`);
+        ghPageWriters.set(ghWriterKey, allWriter);
+        writePageHeader(allWriter, '', allConfiguredModels);
       }
       writeSibEntry(
-        pageWriter,
+        allWriter,
         tsb,
         date,
         new Set(tsb.models.map((m) => m.model)),

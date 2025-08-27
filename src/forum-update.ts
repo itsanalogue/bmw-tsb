@@ -4,6 +4,8 @@ import log from './log.js';
 import { saveDatabase, type TsbDataStore } from './database.js';
 import * as crypto from 'crypto';
 
+export const FORUM_POST_MAX_LENGTH = 100000; //buffer for actual limit of 105000
+
 interface ForumPost {
   postId: string;
   forumDomain: string;

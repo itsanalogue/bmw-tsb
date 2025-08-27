@@ -1,5 +1,8 @@
 interface ModelDefinition {
-  models: Map<string, { startYear: number; endYear?: number }>;
+  models: Map<
+    string,
+    { startYear: number; endYear?: number; strictMatch?: boolean }
+  >;
 }
 
 const IGNORE_MODEL_VARIANTS = new Set(['IX M60']);
@@ -43,7 +46,7 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
     'G14',
     {
       models: new Map([
-        ['M8', { startYear: 2020, endYear: 2026 }],
+        ['M8', { startYear: 2020, endYear: 2026, strictMatch: true }],
         ['840I', { startYear: 2020, endYear: 2026 }],
       ]),
     },
@@ -77,18 +80,16 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
     'G42',
     {
       models: new Map([
-        ['228I', { startYear: 2022, endYear: 2028 }],
         ['230I', { startYear: 2022, endYear: 2028 }],
         ['240I', { startYear: 2022, endYear: 2028 }],
         ['M240I', { startYear: 2022, endYear: 2028 }],
-        ['M235I', { startYear: 2022, endYear: 2028 }],
       ]),
     },
   ],
   [
     'G45',
     {
-      models: new Map([['X3', { startYear: 2025, endYear: 2031 }]]),
+      models: new Map([['X3', { startYear: 2025, endYear: 2032 }]]),
     },
   ],
   [
@@ -113,6 +114,31 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
     },
   ],
   [
+    'G80',
+    {
+      models: new Map([
+        ['M3', { startYear: 2021, endYear: 2027, strictMatch: true }],
+        ['M4', { startYear: 2021, endYear: 2028, strictMatch: true }],
+      ]),
+    },
+  ],
+  [
+    'G87',
+    {
+      models: new Map([
+        ['M2', { startYear: 2023, endYear: 2030, strictMatch: true }],
+      ]),
+    },
+  ],
+  [
+    'G90',
+    {
+      models: new Map([
+        ['M5', { startYear: 2025, endYear: 2031, strictMatch: true }],
+      ]),
+    },
+  ],
+  [
     'I20',
     {
       models: new Map([['IX', { startYear: 2022, endYear: 2028 }]]),
@@ -122,8 +148,8 @@ export const MODEL_DEFINITIONS = new Map<string, ModelDefinition>([
     'U11',
     {
       models: new Map([
-        ['X1', { startYear: 2023, endYear: 2029 }],
-        ['X2', { startYear: 2023, endYear: 2029 }],
+        ['X1', { startYear: 2023, endYear: 2033 }],
+        ['X2', { startYear: 2023, endYear: 2033 }],
       ]),
     },
   ],
@@ -134,10 +160,8 @@ export const isModelMatch = (
   modelsToMatch: Set<string>,
 ): boolean => {
   for (const modelToMatch of modelsToMatch.values()) {
-    const modelDef = MODEL_DEFINITIONS.get(modelToMatch) ?? {
-      models: new Map([
-        [modelToMatch, { startYear: 2000, endYear: undefined }],
-      ]),
+    const modelDef: ModelDefinition = MODEL_DEFINITIONS.get(modelToMatch) ?? {
+      models: new Map([[modelToMatch, { startYear: 2000 }]]),
     };
 
     for (const tsbModel of tsbModelInfo) {
@@ -150,7 +174,10 @@ export const isModelMatch = (
           tsbModel.model.startsWith(k),
         );
         if (partialKeyMatch) {
-          modelEntry = modelDef.models.get(partialKeyMatch);
+          const partialMatch = modelDef.models.get(partialKeyMatch);
+          if (!partialMatch?.strictMatch) {
+            modelEntry = partialMatch;
+          }
         }
       }
       if (modelEntry) {

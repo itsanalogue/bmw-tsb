@@ -211,6 +211,8 @@ export async function processTsbs(make: string, models: string[]) {
       if (!allWriter) {
         allWriter = createOutputWriter(`${make}/ALL.txt`);
         forumWriters.set(writerKey, allWriter);
+        allWriter.writeLine(`[B][SIZE="5"]Recent Bulletins[/SIZE][/B]`);
+        allWriter.writeLine('');
       }
       if (allWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
         writeForumEntry(

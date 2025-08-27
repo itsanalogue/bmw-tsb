@@ -34,6 +34,11 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-G26/RECENT.txt',
   },
   {
+    postId: '32307804',
+    forumDomain: 'g87.bimmerpost.com',
+    contentPath: 'BMW-G42/RECENT.txt',
+  },
+  {
     postId: '32306477',
     forumDomain: 'g45.bimmerpost.com',
     contentPath: 'BMW-G45/RECENT.txt',
@@ -47,6 +52,21 @@ const FORUM_POSTS: ForumPost[] = [
     postId: '32307092',
     forumDomain: 'www.7post.com',
     contentPath: 'BMW-G70/RECENT.txt',
+  },
+  {
+    postId: '32307783',
+    forumDomain: 'g80.bimmerpost.com',
+    contentPath: 'BMW-G80/RECENT.txt',
+  },
+  {
+    postId: '32307799',
+    forumDomain: 'g87.bimmerpost.com',
+    contentPath: 'BMW-G87/RECENT.txt',
+  },
+  {
+    postId: '32307778',
+    forumDomain: 'g90.bimmerpost.com',
+    contentPath: 'BMW-G90/RECENT.txt',
   },
   {
     postId: '32284226',

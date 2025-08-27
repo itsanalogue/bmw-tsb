@@ -4,7 +4,7 @@ import { createOutputWriter } from './output.js';
 import { sendMessage } from './email.js';
 import log from './log.js';
 import { isModelMatch, MODEL_DEFINITIONS } from './model-match.js';
-import { updateForumPosts } from './forum-update.js';
+import { FORUM_POST_MAX_LENGTH, updateForumPosts } from './forum-update.js';
 import { writePageFooter, writePageHeader, writeSibEntry } from './gh-pages.js';
 
 export function parseTsbDate(
@@ -172,7 +172,9 @@ export async function processTsbs(make: string, models: string[]) {
           forumWriters.set(writerKey, writer);
         }
 
-        writeForumEntry(writer, tsb, date, modelSlice);
+        if (writer.lengthWritten() < FORUM_POST_MAX_LENGTH) {
+          writeForumEntry(writer, tsb, date, modelSlice);
+        }
       }
     }
   }
@@ -202,11 +204,13 @@ export async function processTsbs(make: string, models: string[]) {
             writer = createOutputWriter(`${make}-${model}/NEW.txt`);
             forumWriters.set(writerKey, writer);
           }
-          writeForumEntry(writer, tsb, date, modelSlice);
+          if (writer.lengthWritten() < FORUM_POST_MAX_LENGTH) {
+            writeForumEntry(writer, tsb, date, modelSlice);
+          }
         }
 
         const recentCount = recentCountMap.get(model) ?? 0;
-        if (recentCount < 30) {
+        if (recentCount < 100) {
           recentCountMap.set(model, recentCount + 1);
           const writerKey = `RECENT-${model}`;
           let writer = forumWriters.get(writerKey);
@@ -216,7 +220,9 @@ export async function processTsbs(make: string, models: string[]) {
             writer.writeLine('');
             forumWriters.set(writerKey, writer);
           }
-          writeForumEntry(writer, tsb, date, modelSlice);
+          if (writer.lengthWritten() < FORUM_POST_MAX_LENGTH) {
+            writeForumEntry(writer, tsb, date, modelSlice);
+          }
         }
       }
     }

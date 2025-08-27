@@ -119,7 +119,9 @@ export const writeSibEntry = (
 
   let otherModels = 0;
 
-  for (const tsbModel of tsb.models) {
+  for (const tsbModel of tsb.models.sort((a, b) =>
+    a.model.localeCompare(b.model),
+  )) {
     if (!isModelMatch([tsbModel], modelSlice)) {
       otherModels++;
       continue;
@@ -130,7 +132,7 @@ export const writeSibEntry = (
   }
   if (otherModels > 0) {
     writer.writeLine(
-      `<dt>(plus ${tsb.models.length - 1} other model${otherModels === 1 ? '' : 's'})</dt>`,
+      `<dt>(plus ${otherModels} other model${otherModels === 1 ? '' : 's'})</dt>`,
     );
   }
   writer.writeLine(`<dt class="dtFoot"><b>${tsb.component}</b></dt>`);

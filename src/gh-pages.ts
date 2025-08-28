@@ -27,19 +27,25 @@ export const writePageHeader = (
         <title>BMW ${model} Service Bulletins</title>        
         <style>
             body {
-                color:#414141;
+                background: rgba(246, 246, 246, 1);
                 font-family: Helvetica Neue,-apple-system,"system-ui",serif;                
+            }
+            .content {
+                background: #ffffff;
+                color:#414141;
                 margin-left: 15%;
                 margin-right: 15%;
             }
-
-            hr {
-                unicode-bidi: isolate;
-                margin-block-start: 0.5em;
-                margin-block-end: 0.5em;
-                margin-inline-start: auto;
-                margin-inline-end: auto;
-                overflow: hidden;
+            
+            .contentHead {
+               color: rgb(68,68,68);
+               padding: 20px;
+               font-size: 32px;
+               font-weight: 700;               
+            }
+            
+            a {
+                color: rgb(8, 8, 200)
             }
 
             dl {
@@ -52,22 +58,27 @@ export const writePageHeader = (
                 font-size: px2em(12px);
             }
 
-            dt {
-                
+            .dlBox {
+                padding: 20px;                
+                border-bottom-width: 5px;
+                border-bottom-style: solid;
+                border-bottom-color: rgba(246, 246, 246, 1);
             }
-
             .dtHead {
                 font-weight: bold;
-                margin-top: 40px;
+                margin-top: 20px;
                 margin-bottom: 10px;
             }
 
-            .dtFoot {
+            .ddHead {
                 margin-top: 10px;
             }
-            .dtRecall {
+            .ddRecall {
                 font-weight: bold;
                 margin-bottom: 10px;
+            }
+            .modelSelect {
+                margin-left: 20px;
             }
             .modelLink {
                 display: inline-flex;
@@ -84,10 +95,10 @@ export const writePageHeader = (
                 margin-right: 10px;
                 font-weight: bold;
             }
-      .modelLink select, .modelLinkSelected select {
-        font-size: 18px;
-        padding: 4px 8px;
-      }
+            .modelLink select, .modelLinkSelected select {
+                font-size: 18px;
+                padding: 4px 8px;
+            }
         </style>
     </head>
     <!-- Google tag (gtag.js) -->
@@ -100,18 +111,18 @@ export const writePageHeader = (
         gtag('config', 'G-YMSCSBZQ3D');
     </script>
     <body>
-        <h1>BMW ${model} Service Bulletins</h1>
-        <hr/>
-        
-          <div>
+      <div class="content">
+        <div class="dlBox">
+          <div class="contentHead">BMW ${model} Service Bulletins</div>
+          <div class="modelSelect">
             <label class="modelLink">MODEL:
               <select id="modelSelect" onchange="if(this.value) window.location.href=this.value">
                 <option value="index.html"${model === '' ? ' selected' : ''}>ALL</option>
                 ${modelOptions}
               </select>
             </label>
-            <hr/>
           </div>
+        </div>
         <div>
             <dl>`);
 };
@@ -124,12 +135,12 @@ export const writeSibEntry = (
 ) => {
   writer.writeLine('');
   writer.writeLine(
-    `<dt class="dtHead"><a href="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}" target="offsite">${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}</a>  (${dateShortDisplay(date)})</dt>`,
+    `<div class="dlBox"><dt class="dtHead"><a href="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}" target="offsite">${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}</a>  (${dateShortDisplay(date)})</dt>`,
   );
 
   const recallInfo = recallDetails(tsb);
   if (recallInfo.length > 0) {
-    writer.writeLine(`<dt class="dtRecall">${recallInfo}</dt>`);
+    writer.writeLine(`<dd class="ddRecall">${recallInfo}</dd>`);
   }
 
   let otherModels = 0;
@@ -142,22 +153,22 @@ export const writeSibEntry = (
       continue;
     }
     writer.writeLine(
-      `<dt>${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}</dt>`,
+      `<dd>${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}</dd>`,
     );
   }
   if (otherModels > 0) {
     writer.writeLine(
-      `<dt>(plus ${otherModels} other model${otherModels === 1 ? '' : 's'})</dt>`,
+      `<dd>(plus ${otherModels} other model${otherModels === 1 ? '' : 's'})</dd>`,
     );
   }
-  writer.writeLine(`<dt class="dtFoot"><b>${tsb.component}</b></dt>`);
-  writer.writeLine(`<dt>${tsb.summary}</dt>`);
+  writer.writeLine(`<dd class="ddHead"><b>${tsb.component}</b></dd>`);
+  writer.writeLine(`<dd>${tsb.summary}</dd>`);
   for (const att of tsb.files) {
     writer.writeLine(
-      `<dt class="dtFoot"><a href="${att.url}" target="offsite">${att.fileName}</a></dt>`,
+      `<dd class="ddHead"><a href="${att.url}" target="offsite">${att.fileName}</a></dd>`,
     );
   }
-  writer.writeLine('<hr class="dtFoot"/>');
+  writer.writeLine('</div>');
 };
 
 export const writePageFooter = (
@@ -166,6 +177,7 @@ export const writePageFooter = (
   writer.writeLine(`
             </dl>
         </div>
+      </div>
     </body>
 </html>`);
 };

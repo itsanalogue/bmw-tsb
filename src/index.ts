@@ -295,7 +295,7 @@ export async function processTsbs(make: string, models: string[]) {
     const recentCountAll = recentCountMap.get(make) ?? 0;
     if (recentCountAll < 500) {
       recentCountMap.set(make, recentCountAll + 1);
-      const ghWriterKey = `PAGES-${make}`;
+      const ghWriterKey = `index.html`;
       let allWriter = ghPageWriters.get(ghWriterKey);
       if (!allWriter) {
         allWriter = createOutputWriter(`gh-pages/index.html`);
@@ -312,7 +312,7 @@ export async function processTsbs(make: string, models: string[]) {
     for (const model of [...allConfiguredModels]) {
       const modelSlice = new Set([model]);
       if (isModelMatch(tsb.models, modelSlice)) {
-        const ghWriterKey = `PAGES-${model}`;
+        const ghWriterKey = `${model}.html`;
         let pageWriter = ghPageWriters.get(ghWriterKey);
         if (!pageWriter) {
           pageWriter = createOutputWriter(`gh-pages/${model}.html`);
@@ -329,6 +329,11 @@ export async function processTsbs(make: string, models: string[]) {
     writePageFooter(writer);
     await writer.end();
   }
+  const ghSiteMap = createOutputWriter(`gh-pages/sitemap.txt`);
+  for (const pageKey of [...ghPageWriters.keys()].sort()) {
+    ghSiteMap.writeLine(`https://itsanalogue.github.io/bmw-tsb/${pageKey}`);
+  }
+  await ghSiteMap.end();
 
   log.info(`Wrote gh-pages output for ${make} to ${ghPageWriters.size} files.`);
 

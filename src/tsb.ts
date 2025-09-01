@@ -53,6 +53,72 @@ const NHTSA_RECALL_SOURCE_ROOT = 'https://static.nhtsa.gov/odi/ffdd/rcl/';
 const NHTSA_TSB_ISSUES_ROOT =
   'https://api.nhtsa.gov/safetyIssues/byNhtsaId?name=&nhtsaId=';
 
+export interface TsbTextRow {
+  nhtsaID: string;
+  nhtsaDate: string;
+  tsbID?: string;
+  manufacturerDate: string;
+  type: string;
+  make: string;
+  model: string;
+  year: string;
+  component: string;
+  summary: string;
+  potentialNumberAffected?: string;
+  beginManufacture?: string;
+  endManufacture?: string;
+}
+
+export interface TsbModelCorrection {
+  type: 'add' | 'remove';
+  model: string;
+  years: string[];
+}
+
+export interface Tsb extends Omit<TsbTextRow, 'model'> {
+  models: { model: string; years: Set<string> }[];
+  files: TsbDataStore['files'][0];
+  newData: boolean;
+}
+
+const TSB_CORRECTIONS: Map<string, TsbModelCorrection[]> = new Map([
+  [
+    'B660725',
+    [
+      {
+        type: 'add',
+        model: 'M2',
+        years: ['2024'],
+      },
+      {
+        type: 'add',
+        model: 'M3',
+        years: ['2024'],
+      },
+      {
+        type: 'add',
+        model: 'M4',
+        years: ['2024'],
+      },
+      {
+        type: 'add',
+        model: 'M5',
+        years: ['2024'],
+      },
+      {
+        type: 'add',
+        model: 'X1',
+        years: ['2024'],
+      },
+      {
+        type: 'add',
+        model: 'X2',
+        years: ['2024'],
+      },
+    ],
+  ],
+]);
+
 const TSB_SOURCES: TsbDataStore['sources'][0][] = [
   // {
   //   type: 'tsb',
@@ -86,27 +152,6 @@ const TSB_SOURCES: TsbDataStore['sources'][0][] = [
     cacheDate: undefined,
   },
 ];
-export interface TsbTextRow {
-  nhtsaID: string;
-  nhtsaDate: string;
-  tsbID?: string;
-  manufacturerDate: string;
-  type: string;
-  make: string;
-  model: string;
-  year: string;
-  component: string;
-  summary: string;
-  potentialNumberAffected?: string;
-  beginManufacture?: string;
-  endManufacture?: string;
-}
-
-export interface Tsb extends Omit<TsbTextRow, 'model'> {
-  models: { model: string; years: Set<string> }[];
-  files: TsbDataStore['files'][0];
-  newData: boolean;
-}
 
 export function sanitizeSummary(s: string): string {
   if (!s) return s;
@@ -335,6 +380,38 @@ export async function getTsbs(
     const latest = group.sort((a, b) =>
       b.manufacturerDate.localeCompare(a.manufacturerDate),
     )[0];
+    const issueId = latest.tsbID ?? latest.nhtsaID;
+
+    const corrections = TSB_CORRECTIONS.get(issueId);
+    if (corrections) {
+      log.info(`Applying corrections for ${issueId}`);
+      for (const c of corrections) {
+        const years = modelYears.get(c.model);
+        switch (c.type) {
+          case 'add':
+            if (!years) {
+              modelYears.set(c.model, new Set(c.years));
+            } else {
+              for (const y of c.years) {
+                if (!years.has(y)) {
+                  years.add(y);
+                }
+              }
+            }
+            break;
+          case 'remove':
+            if (years) {
+              for (const y of c.years) {
+                years.delete(y);
+              }
+              if (years.size === 0) {
+                modelYears.delete(c.model);
+              }
+            }
+            break;
+        }
+      }
+    }
 
     const models = Array.from(modelYears.entries()).map(
       ([model, yearsSet]) => ({
@@ -344,7 +421,6 @@ export async function getTsbs(
       }),
     );
 
-    const issueId = latest.tsbID ?? latest.nhtsaID;
     let newData = false;
     let files: TsbDataStore['files'][0] = dataStore.files[latest.nhtsaID] ?? [];
 

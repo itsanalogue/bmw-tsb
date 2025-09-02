@@ -203,6 +203,8 @@ export async function processTsbs(make: string, models: string[]) {
       parseTsbDate(tsb.nhtsaDate) ??
       new Date();
 
+    const tsbModelSet = new Set(tsb.models.map((m) => m.model));
+
     const allWriterKey = `ALL-${make}`;
     const recentCountAll = recentCountMap.get(allWriterKey) ?? 0;
     if (recentCountAll < 500) {
@@ -215,12 +217,19 @@ export async function processTsbs(make: string, models: string[]) {
         allWriter.writeLine('');
       }
       if (allWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
-        writeForumEntry(
-          allWriter,
-          tsb,
-          date,
-          new Set(tsb.models.map((m) => m.model)),
-        );
+        writeForumEntry(allWriter, tsb, date, tsbModelSet);
+      }
+    }
+
+    if (tsb.newData) {
+      const allNewWriterKey = `NEW-${make}`;
+      let allNewWriter = forumWriters.get(allNewWriterKey);
+      if (!allNewWriter) {
+        allNewWriter = createOutputWriter(`${make}/NEW.txt`);
+        forumWriters.set(allNewWriterKey, allNewWriter);
+      }
+      if (allNewWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
+        writeForumEntry(allNewWriter, tsb, date, tsbModelSet);
       }
     }
 

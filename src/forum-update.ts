@@ -10,11 +10,18 @@ interface ForumPost {
   postId: string;
   forumDomain: string;
   contentPath: string;
+  reply?: boolean;
 }
 const VBULLETIN_VERSION = '3.8.11';
 const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32308237',
+    forumDomain: 'g80.bimmerpost.com',
+    contentPath: 'BMW/NEW.txt',
+    reply: true,
+  },
+  {
+    postId: '32308235',
     forumDomain: 'g80.bimmerpost.com',
     contentPath: 'BMW/ALL.txt',
   },
@@ -232,6 +239,85 @@ async function updatePost({
   }
 }
 
+async function replyToThread({
+  bbuserid,
+  bbpassword,
+  content,
+  post,
+}: {
+  bbuserid: string;
+  bbpassword: string;
+  content: string;
+  post: ForumPost;
+}) {
+  const showUrl = `https://${post.forumDomain}/forums/showpost.php?p=${post.postId}`;
+  const startReplyUrl = `https://${post.forumDomain}/forums/newreply.php?do=newreply&p=${post.postId}&noquote=1`;
+
+  const startReplyRes = await fetch(startReplyUrl, {
+    headers: {
+      'User-Agent': 'itsanalogue-bmw-tsb-updates',
+      Cookie: `bbuserid=${bbuserid}; bbpassword=${bbpassword}`,
+      Referer: showUrl,
+    },
+  });
+  if (!startReplyRes.ok) {
+    throw new Error(
+      `Failed to load new reply for post ${post.postId} on ${post.forumDomain}: ${startReplyRes.status} ${startReplyRes.statusText}`,
+    );
+  }
+  const newReplyPageText = await startReplyRes.text();
+
+  const vbVersion = /vBulletin ([\d\.]+)/.exec(newReplyPageText);
+  if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {
+    throw new Error(
+      `Unexpected vBulletin version (${vbVersion?.[1]}).  Will not attempt forum reply.`,
+    );
+  }
+
+  const csrfTokenMatch = /var\sSECURITYTOKEN\s=\s"([^"]+)";/.exec(
+    newReplyPageText,
+  );
+  if (!csrfTokenMatch) {
+    throw new Error(
+      `Failed to read CSRF token for ${post.postId} on ${post.forumDomain}`,
+    );
+  }
+  const csrfToken = csrfTokenMatch[1];
+
+  const threadMatch = /name="t"\svalue="([^"]+)"/.exec(newReplyPageText);
+  if (!threadMatch) {
+    throw new Error(
+      `Failed to read thread ID for ${post.postId} on ${post.forumDomain}`,
+    );
+  }
+  const threadId = threadMatch[1];
+  const postReplyUrl = `https://${post.forumDomain}/forums/newreply.php?do=postreply&t=${threadId}`;
+
+  const encodedContent = encodeContentForVbulletin(content);
+  const encodedTitle = encodeContentForVbulletin(
+    `New ${new Date().toISOString().split('T')[0]}`,
+  );
+
+  const postBody = `title=${encodedTitle}&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=postreply&t=${threadId}&p=${post.postId}&loggedinuser=859&multiquoteempty=&sbutton=Submit+Reply&parseurl=1&emailupdate=1&rating=0`;
+
+  const postReplyPageRes = await fetch(postReplyUrl, {
+    method: 'POST',
+    headers: {
+      'User-Agent': 'itsanalogue-bmw-tsb-updates',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Cookie: `bbuserid=${bbuserid}; bbpassword=${bbpassword}`,
+      Referer: startReplyUrl,
+    },
+    body: postBody,
+  });
+
+  if (!(postReplyPageRes.ok || postReplyPageRes.status === 302)) {
+    throw new Error(
+      `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${startReplyRes.status} ${startReplyRes.statusText}`,
+    );
+  }
+}
+
 export async function updateForumPosts(dataStore: TsbDataStore) {
   const bbpassword = process.env.BBPASSWORD;
   const bbuserid = process.env.BBUSERID;
@@ -263,7 +349,11 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
 
       while (retries > 0) {
         try {
-          await updatePost({ bbpassword, bbuserid, content, post });
+          if (post.reply) {
+            await replyToThread({ bbpassword, bbuserid, content, post });
+          } else {
+            await updatePost({ bbpassword, bbuserid, content, post });
+          }
           updateCount++;
           // eslint-disable-next-line require-atomic-updates
           dataStore.forumPostHashes[post.contentPath] = contentHash;

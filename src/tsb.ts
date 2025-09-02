@@ -138,7 +138,7 @@ const TSB_SOURCES: TsbDataStore['sources'][0][] = [
   },
   {
     type: 'tsb',
-    fileBaseName: 'TSBS_RECEIVED_2025-2025',
+    fileBaseName: 'TSBS_RECEIVED_2025-{{YEAR}}',
     active: true,
     cacheDate: undefined,
   },
@@ -156,14 +156,7 @@ const TSB_SOURCES: TsbDataStore['sources'][0][] = [
 export function sanitizeSummary(s: string): string {
   if (!s) return s;
   let out = s;
-  // Common mojibake sequences observed in dataset
-  //out = out.replace(/â|â|â?\?\u009d|â\?\u009d/g, '"');
-  //out = out.replace(/â|â\u009d/g, '"');
-  //out = out.replace(/[ÂÃ¢\u0080\u0082\u00083]+/g, '"');
   out = out.replace(/[ÂÃ¢\u0080\u0082\u0083\u009C\u009D]+/g, '"');
-  //out = out.replace(/â/g, '');
-  //out = out.replace(/Â/g, '"');
-  //out = out.replace(/â/g, ' ');
   // Remove other non-printable / control characters
   // eslint-disable-next-line no-control-regex
   out = out.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ');
@@ -231,12 +224,16 @@ export async function readTsbFiles(
   const dataDir = path.resolve(new URL('../data', import.meta.url).pathname);
   const records: TsbTextRow[] = [];
   for (const sourceConfig of TSB_SOURCES) {
-    const source = dataStore.sources[sourceConfig.fileBaseName] ?? sourceConfig;
+    const baseName = sourceConfig.fileBaseName.replace(
+      '{{YEAR}}',
+      new Date().getFullYear().toString(),
+    );
+    const source = dataStore.sources[baseName] ?? sourceConfig;
 
-    const zipUrl = `${sourceConfig.type === 'tsb' ? NHTSA_TSB_SOURCE_ROOT : NHTSA_RECALL_SOURCE_ROOT}${source.fileBaseName}.zip`;
-    const zipPath = path.join(dataDir, `${source.fileBaseName}.zip`);
-    const txtPath = path.join(dataDir, `${source.fileBaseName}.txt`);
-    const jsonPath = path.join(dataDir, `${make}.${source.fileBaseName}.json`);
+    const zipUrl = `${sourceConfig.type === 'tsb' ? NHTSA_TSB_SOURCE_ROOT : NHTSA_RECALL_SOURCE_ROOT}${baseName}.zip`;
+    const zipPath = path.join(dataDir, `${baseName}.zip`);
+    const txtPath = path.join(dataDir, `${baseName}.txt`);
+    const jsonPath = path.join(dataDir, `${make}.${baseName}.json`);
 
     let download = !fs.existsSync(jsonPath);
 
@@ -253,12 +250,12 @@ export async function readTsbFiles(
         ) {
           download = true;
           log.info(
-            `Source ${sourceConfig.fileBaseName} has new version uploaded at ${remoteDate?.toISOString()}.`,
+            `Source ${baseName} has new version uploaded at ${remoteDate?.toISOString()}.`,
           );
         }
       } else {
         throw new Error(
-          `Refresh source check for ${source.fileBaseName} returned ${head.status} ${head.statusText}`,
+          `Refresh source check for ${baseName} returned ${head.status} ${head.statusText}`,
         );
       }
     }
@@ -266,7 +263,7 @@ export async function readTsbFiles(
     if (download) {
       await fsPromises.mkdir(dataDir, { recursive: true });
 
-      log.info(`Downloading source ${sourceConfig.fileBaseName} `);
+      log.info(`Downloading source ${baseName} `);
 
       const getRes = await fetch(zipUrl);
       if (!getRes.ok)
@@ -295,7 +292,7 @@ export async function readTsbFiles(
     }
 
     // eslint-disable-next-line require-atomic-updates
-    dataStore.sources[sourceConfig.fileBaseName] = source;
+    dataStore.sources[baseName] = source;
 
     let fileRecords = readJson<TsbTextRow[]>(jsonPath) ?? [];
 

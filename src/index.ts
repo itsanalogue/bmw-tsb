@@ -291,7 +291,7 @@ export async function processTsbs(make: string, models: string[]) {
       new Date();
 
     if (tsb.newData) {
-      const writerKey = `PAGES-NEW-${make}`;
+      const writerKey = `new.html`;
       let writer = ghPageWriters.get(writerKey);
       if (!writer) {
         writer = createOutputWriter(`gh-pages/new.html`);

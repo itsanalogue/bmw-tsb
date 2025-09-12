@@ -1,8 +1,8 @@
 import fs from 'fs';
-import path from 'path';
 import log from './log.js';
 import { saveDatabase, type TsbDataStore } from './database.js';
 import * as crypto from 'crypto';
+import { getOutputPath } from './output.js';
 
 export const FORUM_POST_MAX_LENGTH = 100000; //buffer for actual limit of 105000
 
@@ -218,6 +218,18 @@ async function updatePost({
   }
   const csrfToken = csrfTokenMatch[1];
 
+  const existingPostMatch =
+    /<textarea name="message" id="vB_Editor_001_textarea".+>([^<]+)<\/textarea>/.exec(
+      editPageText,
+    );
+  if (existingPostMatch) {
+    const existingPostText = existingPostMatch[1];
+    const existingPostFilePath = getOutputPath(
+      post.contentPath.replace('.txt', '.prior.txt'),
+    );
+    await fs.promises.writeFile(existingPostFilePath, existingPostText);
+  }
+
   const encodedContent = encodeContentForVbulletin(content);
 
   const postBody = `reason=&title=&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=updatepost&p=${post.postId}&sbutton=Save+Changes&parseurl=1&emailupdate=1`;
@@ -326,15 +338,12 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
     log.info('Forum credentials are not configured.  Skipping updates.');
     return 0;
   }
-  const outputPath = path.resolve(
-    decodeURI(new URL(`../out/`, import.meta.url).pathname),
-  );
+
   let updateCount = 0;
   let retries = 3;
 
   for (const post of FORUM_POSTS) {
-    const contentFilePath = path.join(outputPath, post.contentPath);
-
+    const contentFilePath = getOutputPath(post.contentPath);
     if (fs.existsSync(contentFilePath)) {
       const content = fs.readFileSync(contentFilePath, 'utf-8');
       const contentHash = crypto

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import he from 'html-entities';
+import { decode } from 'html-entities';
 import log from './log.js';
 import { saveDatabase, type TsbDataStore } from './database.js';
 import * as crypto from 'crypto';
@@ -228,10 +228,7 @@ async function updatePost({
     const existingPostFilePath = getOutputPath(
       post.contentPath.replace('.txt', '.prior.txt'),
     );
-    await fs.promises.writeFile(
-      existingPostFilePath,
-      he.decode(existingPostText),
-    );
+    await fs.promises.writeFile(existingPostFilePath, decode(existingPostText));
   }
 
   const encodedContent = encodeContentForVbulletin(content);

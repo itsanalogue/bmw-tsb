@@ -202,7 +202,31 @@ async function updatePost({
       `Failed to load edit page for post ${post.postId} on ${post.forumDomain}: ${editPageRes.status} ${editPageRes.statusText}`,
     );
   }
-  const editPageText = await editPageRes.text();
+
+  let responseCharset = '';
+  const charsetMatch = /charset=([^;\s]+)/.exec(
+    editPageRes.headers.get('Content-Type') ?? '',
+  );
+  if (charsetMatch) {
+    responseCharset = charsetMatch[1].toLowerCase();
+  }
+
+  let editPageText = '';
+  switch (responseCharset) {
+    case 'iso-8859-1':
+      //vBulletin is incorrectly presenting Windows-1252 as ISO-8859-1
+      //AND TextDecoder incorrectly decodes Windows-1252 as ISO-8859-1
+      //Decode as Windows-1252 and set stream:true to avoid the TextDecoder bug.
+      //https://github.com/nodejs/node/issues/56542
+      const textDecoder = new TextDecoder('windows-1252');
+      const textBuffer = await editPageRes.arrayBuffer();
+      editPageText = textDecoder.decode(textBuffer, { stream: true });
+      break;
+    case 'utf-8':
+    default:
+      editPageText = await editPageRes.text();
+      break;
+  }
 
   const vbVersion = /vBulletin ([\d\.]+)/.exec(editPageText);
   if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {

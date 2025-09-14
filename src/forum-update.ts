@@ -123,12 +123,58 @@ const FORUM_POSTS: ForumPost[] = [
   },
 ];
 
+// effectively converting to Windows-1252
 export const encodeContentForVbulletin = (s: string) => {
   let out = '';
   for (let i = 0; i < s.length; i++) {
     const ch = s.charAt(i);
     const code = s.charCodeAt(i);
+
+    if (code >= 0xa0 && code <= 0xff) {
+      out += `%${code.toString(16).toUpperCase()}`;
+      continue;
+    }
+
     switch (code) {
+      case 0x20ac:
+        out += '%80';
+        break;
+      case 0x201a:
+        out += '%82';
+        break;
+      case 0x192:
+        out += '%83';
+        break;
+      case 0x201e:
+        out += '%84';
+        break;
+      case 0x2026:
+        out += '%85';
+        break;
+      case 0x2020:
+        out += '%86';
+        break;
+      case 0x2021:
+        out += '%87';
+        break;
+      case 0x2c6:
+        out += '%88';
+        break;
+      case 0x2030:
+        out += '%89';
+        break;
+      case 0x160:
+        out += '%8A';
+        break;
+      case 0x2039:
+        out += '%8B';
+        break;
+      case 0x152:
+        out += '%8C';
+        break;
+      case 0x17d:
+        out += '%8E';
+        break;
       case 0x2018:
         out += '%91';
         break;
@@ -150,8 +196,26 @@ export const encodeContentForVbulletin = (s: string) => {
       case 0x2014:
         out += '%97';
         break;
+      case 0x2dc:
+        out += '%98';
+        break;
       case 0x2122:
         out += '%99';
+        break;
+      case 0x161:
+        out += '%9A';
+        break;
+      case 0x203a:
+        out += '%9B';
+        break;
+      case 0x153:
+        out += '%9C';
+        break;
+      case 0x17e:
+        out += '%9E';
+        break;
+      case 0x178:
+        out += '%9F';
         break;
       case 0x28:
       case 0x29:
@@ -160,12 +224,6 @@ export const encodeContentForVbulletin = (s: string) => {
       case 0x0a:
         out += '%0D';
         out += encodeURIComponent(ch);
-        break;
-      case 0xba:
-        out += '%BA';
-        break;
-      case 0xdc:
-        out += '%DC';
         break;
       default:
         out += encodeURIComponent(ch);

@@ -366,17 +366,57 @@ export async function getTsbs(
     .replaceAll('-', '');
 
   for (const [, group] of groups.entries()) {
+    const latest = group.sort((a, b) =>
+      b.manufacturerDate.localeCompare(a.manufacturerDate),
+    )[0];
+    const combinedTsb: Tsb = {
+      ...latest,
+      files: [],
+      models: [],
+      newData: false,
+    };
+
     const modelYears = new Map<string, Set<string>>();
+    const components = new Set<string>();
+    let potentialNumber: undefined | number = undefined;
     for (const r of group) {
       const model = r.model;
       const year = r.year;
       if (!modelYears.has(model)) modelYears.set(model, new Set());
       if (year) modelYears.get(model)!.add(year);
+
+      if (r.potentialNumberAffected) {
+        const pot = parseInt(r.potentialNumberAffected, 10);
+        if (pot > 0 && (!potentialNumber || pot > potentialNumber)) {
+          potentialNumber = pot;
+        }
+      }
+
+      if (r.beginManufacture) {
+        if (
+          !combinedTsb.beginManufacture ||
+          r.beginManufacture.localeCompare(combinedTsb.beginManufacture) < 0
+        ) {
+          combinedTsb.beginManufacture = r.beginManufacture;
+        }
+      }
+
+      if (r.endManufacture) {
+        if (
+          !combinedTsb.endManufacture ||
+          r.endManufacture.localeCompare(combinedTsb.endManufacture) > 0
+        ) {
+          combinedTsb.endManufacture = r.endManufacture;
+        }
+      }
+
+      components.add(r.component);
     }
 
-    const latest = group.sort((a, b) =>
-      b.manufacturerDate.localeCompare(a.manufacturerDate),
-    )[0];
+    combinedTsb.potentialNumberAffected = potentialNumber?.toString();
+    combinedTsb.files = dataStore.files[latest.nhtsaID] ?? [];
+    combinedTsb.component = [...components].sort().join(', ');
+
     const issueId = latest.tsbID ?? latest.nhtsaID;
 
     const corrections = TSB_CORRECTIONS.get(issueId);
@@ -410,16 +450,13 @@ export async function getTsbs(
       }
     }
 
-    const models = Array.from(modelYears.entries()).map(
+    combinedTsb.models = Array.from(modelYears.entries()).map(
       ([model, yearsSet]) => ({
         make: latest.make,
         model,
         years: yearsSet,
       }),
     );
-
-    let newData = false;
-    let files: TsbDataStore['files'][0] = dataStore.files[latest.nhtsaID] ?? [];
 
     if (
       latest.manufacturerDate.localeCompare(dataStore.tsbDates[issueId] ?? '') >
@@ -429,23 +466,23 @@ export async function getTsbs(
         `Service Bulletin ${issueId} updated: ${dataStore.tsbDates[issueId] ?? ''} -> ${latest.manufacturerDate}`,
       );
       dataStore.tsbDates[issueId] = latest.manufacturerDate;
-      newData = true;
+      combinedTsb.newData = true;
     }
 
     const fetchDetails =
-      (newData || files.length === 0) &&
-      (isModelMatch(models, getDetailsForModels) ||
+      (combinedTsb.newData || combinedTsb.files.length === 0) &&
+      (isModelMatch(combinedTsb.models, getDetailsForModels) ||
         latest.manufacturerDate.localeCompare(fetchOtherCutoff) > 0);
 
     if (fetchDetails) {
       try {
-        files = await resolveAssociatedDocuments(
+        combinedTsb.files = await resolveAssociatedDocuments(
           dataStore,
           latest.nhtsaID,
           latest.tsbID,
         );
         log.info(
-          `Service Bulletin ${issueId} has ${files.length} associated files.`,
+          `Service Bulletin ${issueId} has ${combinedTsb.files.length} associated files.`,
         );
       } catch (error) {
         log.error(
@@ -454,12 +491,7 @@ export async function getTsbs(
       }
     }
 
-    tsbs.push({
-      ...latest,
-      models,
-      newData,
-      files,
-    });
+    tsbs.push(combinedTsb);
   }
 
   return tsbs;

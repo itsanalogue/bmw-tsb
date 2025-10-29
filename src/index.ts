@@ -88,7 +88,7 @@ const addEmailEntry = (entries: string[], tsb: Tsb, date: Date) => {
   entry += `${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)} (${dateShortDisplay(date)})\n`;
   entry += `https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}\n`;
   for (const tsbModel of tsb.models) {
-    entry += `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}${recallDetails(tsb)}\n`;
+    entry += `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()} ${recallDetails(tsb)}\n`;
   }
   entry += `${tsb.component}\n`;
   entry += `${tsb.summary}\n`;

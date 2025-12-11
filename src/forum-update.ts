@@ -27,9 +27,21 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW/ALL.txt',
   },
   {
+    postId: '32306435',
+    forumDomain: 'g05.bimmerpost.com',
+    contentPath: 'BMW-G05/NEW.txt',
+    reply: true,
+  },
+  {
     postId: '32306436',
     forumDomain: 'g05.bimmerpost.com',
     contentPath: 'BMW-G05/RECENT.txt',
+  },
+  {
+    postId: '32306413',
+    forumDomain: 'g07.bimmerpost.com',
+    contentPath: 'BMW-G07/NEW.txt',
+    reply: true,
   },
   {
     postId: '32306416',
@@ -82,29 +94,20 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-G90/RECENT.txt',
   },
   {
-    postId: '32284226',
-    forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-I20/RECENT.txt',
-  },
-  {
     postId: '32306962',
     forumDomain: 'u11.bimmerpost.com',
     contentPath: 'BMW-U11/RECENT.txt',
   },
   {
-    postId: '32284227',
+    postId: '32284224',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-I20/2022.txt',
+    contentPath: 'BMW-I20/NEW.txt',
+    reply: true,
   },
   {
-    postId: '32284230',
+    postId: '32284226',
     forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-I20/2023.txt',
-  },
-  {
-    postId: '32284231',
-    forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-I20/2024.txt',
+    contentPath: 'BMW-I20/RECENT.txt',
   },
   {
     postId: '32284233',

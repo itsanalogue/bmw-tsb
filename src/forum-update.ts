@@ -393,7 +393,7 @@ async function replyToThread({
     `New ${new Date().toISOString().split('T')[0]}`,
   );
 
-  const postBody = `title=${encodedTitle}&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=postreply&t=${threadId}&p=${post.postId}&loggedinuser=859&multiquoteempty=&sbutton=Submit+Reply&parseurl=1&emailupdate=1&rating=0`;
+  const postBody = `title=${encodedTitle}&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=postreply&t=${threadId}&p=${post.postId}&loggedinuser=${bbuserid}&multiquoteempty=&sbutton=Submit+Reply&parseurl=1&emailupdate=1&rating=0`;
 
   const postReplyPageRes = await fetch(postReplyUrl, {
     method: 'POST',

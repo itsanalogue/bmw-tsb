@@ -107,9 +107,21 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-G87/RECENT.txt',
   },
   {
+    postId: '32307775',
+    forumDomain: 'g90.bimmerpost.com',
+    contentPath: 'BMW-G90/NEW.txt',
+    reply: true,
+  },
+  {
     postId: '32307778',
     forumDomain: 'g90.bimmerpost.com',
     contentPath: 'BMW-G90/RECENT.txt',
+  },
+  {
+    postId: '32306961',
+    forumDomain: 'u11.bimmerpost.com',
+    contentPath: 'BMW-U11/NEW.txt',
+    reply: true,
   },
   {
     postId: '32306962',

@@ -69,6 +69,12 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-G45/RECENT.txt',
   },
   {
+    postId: '32306452',
+    forumDomain: 'g60.bimmerpost.com',
+    contentPath: 'BMW-G60/NEW.txt',
+    reply: true,
+  },
+  {
     postId: '32306455',
     forumDomain: 'g60.bimmerpost.com',
     contentPath: 'BMW-G60/RECENT.txt',
@@ -79,9 +85,21 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-G70/RECENT.txt',
   },
   {
+    postId: '32307780',
+    forumDomain: 'g80.bimmerpost.com',
+    contentPath: 'BMW-G80/NEW.txt',
+    reply: true,
+  },
+  {
     postId: '32307783',
     forumDomain: 'g80.bimmerpost.com',
     contentPath: 'BMW-G80/RECENT.txt',
+  },
+  {
+    postId: '32307797',
+    forumDomain: 'g87.bimmerpost.com',
+    contentPath: 'BMW-G87/NEW.txt',
+    reply: true,
   },
   {
     postId: '32307799',

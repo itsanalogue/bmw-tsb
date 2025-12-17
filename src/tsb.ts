@@ -264,18 +264,45 @@ export async function readTsbFiles(
       await fsPromises.mkdir(dataDir, { recursive: true });
 
       log.info(`Downloading source ${baseName} `);
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          const getRes = await fetch(zipUrl);
+          if (!getRes.ok)
+            throw new Error(`Failed to download ${zipUrl}: ${getRes.status}`);
 
-      const getRes = await fetch(zipUrl);
-      if (!getRes.ok)
-        throw new Error(`Failed to download ${zipUrl}: ${getRes.status}`);
+          const lastMod =
+            getRes.headers.get('last-modified') ?? getRes.headers.get('date');
+          const remoteDate = lastMod ? new Date(lastMod) : undefined;
+          source.cacheDate = remoteDate;
 
-      const lastMod =
-        getRes.headers.get('last-modified') ?? getRes.headers.get('date');
-      const remoteDate = lastMod ? new Date(lastMod) : undefined;
-      source.cacheDate = remoteDate;
-
-      const buffer = Buffer.from(await getRes.arrayBuffer());
-      await fsPromises.writeFile(zipPath, buffer);
+          const buffer = Buffer.from(await getRes.arrayBuffer());
+          await fsPromises.writeFile(zipPath, buffer);
+          break;
+        } catch (error) {
+          let canRetry = false;
+          const errorWithCause = error as Error & {
+            cause?: { message: string; code?: string };
+          };
+          switch (errorWithCause.cause?.code) {
+            case 'UND_ERR_CLOSED':
+            case 'UND_ERR_CONNECT_TIMEOUT':
+            case 'UND_ERR_SOCKET':
+              canRetry = true;
+              break;
+          }
+          if (canRetry && --retries > 0) {
+            log.error(
+              `Retrying failed TSB download ${baseName} (${retries} attempts remain)`,
+              errorWithCause.cause ?? error,
+            );
+            //delay 15s on retries
+            await new Promise((res) => global.setTimeout(res, 35000));
+            continue;
+          }
+          throw errorWithCause.cause ?? error;
+        }
+      }
 
       try {
         if (fs.existsSync(txtPath)) {
@@ -287,7 +314,9 @@ export async function readTsbFiles(
         const sourceZip = new AdmZip(zipPath);
         sourceZip.extractAllTo(dataDir);
       } finally {
-        fs.unlinkSync(zipPath);
+        if (fs.existsSync(zipPath)) {
+          fs.unlinkSync(zipPath);
+        }
       }
     }
 

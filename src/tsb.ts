@@ -297,7 +297,7 @@ export async function readTsbFiles(
               errorWithCause.cause ?? error,
             );
             //delay 15s on retries
-            await new Promise((res) => global.setTimeout(res, 35000));
+            await new Promise((res) => global.setTimeout(res, 15000));
             continue;
           }
           throw errorWithCause.cause ?? error;

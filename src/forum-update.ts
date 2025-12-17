@@ -456,7 +456,7 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
   }
 
   let updateCount = 0;
-  let retries = 3;
+  let retries = 4;
 
   for (const post of FORUM_POSTS) {
     const contentFilePath = getOutputPath(post.contentPath);
@@ -498,7 +498,7 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
               canRetry = true;
               break;
           }
-          if (canRetry && retries-- > 0) {
+          if (canRetry && --retries > 0) {
             log.error(
               `Retrying failed forum post update (${retries} retries remain)`,
               errorWithCause.cause ?? error,
@@ -512,7 +512,7 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
             //Save the database if we made any successful posts before throwing
             await saveDatabase(dataStore);
           }
-          throw error;
+          throw errorWithCause.cause ?? error;
         }
       }
     }

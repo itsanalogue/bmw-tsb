@@ -476,15 +476,18 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
         try {
           if (post.reply) {
             await replyToThread({ bbpassword, bbuserid, content, post });
+            log.info(
+              `Replied to forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
+            );
           } else {
             await updatePost({ bbpassword, bbuserid, content, post });
+            log.info(
+              `Updated forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
+            );
           }
           updateCount++;
           // eslint-disable-next-line require-atomic-updates
           dataStore.forumPostHashes[post.contentPath] = contentHash;
-          log.info(
-            `Updated forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
-          );
           break;
         } catch (error) {
           let canRetry = false;

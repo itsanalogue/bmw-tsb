@@ -458,6 +458,8 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
   let updateCount = 0;
   let retries = 4;
 
+  let lastPostTs = 0;
+
   for (const post of FORUM_POSTS) {
     const contentFilePath = getOutputPath(post.contentPath);
     if (fs.existsSync(contentFilePath)) {
@@ -475,7 +477,16 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
       while (retries > 0) {
         try {
           if (post.reply) {
+            const timeSincePost = new Date().getTime() - lastPostTs;
+            if (timeSincePost < 21000) {
+              //forum restricts 1 post per 20 seconds.
+              await new Promise((res) =>
+                global.setTimeout(res, 21000 - timeSincePost),
+              );
+            }
+
             await replyToThread({ bbpassword, bbuserid, content, post });
+            lastPostTs = new Date().getTime();
             log.info(
               `Replied to forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
             );

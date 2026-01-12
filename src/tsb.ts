@@ -6,7 +6,8 @@ import readline from 'readline';
 import { readJson, writeJson } from './storage.js';
 import type { TsbDataStore } from './database.js';
 import log from './log.js';
-import { isModelMatch } from './model-match.js';
+import { getModelCode } from './model-codes.js';
+import { isForumMatch } from './forum-update.js';
 
 const TSB_HEADERS = [
   'nhtsaID',
@@ -76,7 +77,7 @@ export interface TsbModelCorrection {
 }
 
 export interface Tsb extends Omit<TsbTextRow, 'model'> {
-  models: { model: string; years: Set<string> }[];
+  models: { code: string; model: string; years: Set<string> }[];
   files: TsbDataStore['files'][0];
   newData: boolean;
 }
@@ -405,14 +406,23 @@ export async function getTsbs(
       newData: false,
     };
 
-    const modelYears = new Map<string, Set<string>>();
+    const modelYears = new Map<
+      string,
+      { code: string; model: string; years: Set<string> }
+    >();
     const components = new Set<string>();
     let potentialNumber: undefined | number = undefined;
     for (const r of group) {
       const model = r.model;
       const year = r.year;
-      if (!modelYears.has(model)) modelYears.set(model, new Set());
-      if (year) modelYears.get(model)!.add(year);
+      const code = getModelCode({ model, years: new Set([year]) }) ?? 'UNKNOWN';
+      const mapKey = `${code}-${model}`;
+      if (!modelYears.has(mapKey))
+        modelYears.set(mapKey, { code, model, years: new Set() });
+      if (year) {
+        const modSlice = modelYears.get(mapKey)!;
+        modSlice.years.add(year);
+      }
 
       if (r.potentialNumberAffected) {
         const pot = parseInt(r.potentialNumberAffected, 10);
@@ -452,40 +462,45 @@ export async function getTsbs(
     if (corrections) {
       log.info(`Applying corrections for ${issueId}`);
       for (const c of corrections) {
-        const years = modelYears.get(c.model);
-        switch (c.type) {
-          case 'add':
-            if (!years) {
-              modelYears.set(c.model, new Set(c.years));
-            } else {
-              for (const y of c.years) {
-                if (!years.has(y)) {
-                  years.add(y);
+        for (const correctYear of c.years) {
+          const code =
+            getModelCode({ model: c.model, years: new Set([correctYear]) }) ??
+            'UNKNOWN';
+          const mapKey = `${code}-${c.model}`;
+          const modelSlice = modelYears.get(mapKey);
+          switch (c.type) {
+            case 'add':
+              if (!modelSlice) {
+                modelYears.set(mapKey, {
+                  code,
+                  model: c.model,
+                  years: new Set([correctYear]),
+                });
+              } else {
+                modelSlice.years.add(correctYear);
+              }
+              break;
+            case 'remove':
+              if (modelSlice) {
+                for (const y of c.years) {
+                  modelSlice.years.delete(y);
+                }
+                if (modelSlice.years.size === 0) {
+                  modelYears.delete(mapKey);
                 }
               }
-            }
-            break;
-          case 'remove':
-            if (years) {
-              for (const y of c.years) {
-                years.delete(y);
-              }
-              if (years.size === 0) {
-                modelYears.delete(c.model);
-              }
-            }
-            break;
+              break;
+          }
         }
       }
     }
 
-    combinedTsb.models = Array.from(modelYears.entries()).map(
-      ([model, yearsSet]) => ({
-        make: latest.make,
-        model,
-        years: yearsSet,
-      }),
-    );
+    combinedTsb.models = Array.from(modelYears.values()).map((modelSlice) => ({
+      code: modelSlice.code,
+      make: latest.make,
+      model: modelSlice.model,
+      years: modelSlice.years,
+    }));
 
     if (
       latest.manufacturerDate.localeCompare(dataStore.tsbDates[issueId] ?? '') >
@@ -500,7 +515,7 @@ export async function getTsbs(
 
     const fetchDetails =
       (combinedTsb.newData || combinedTsb.files.length === 0) &&
-      (isModelMatch(combinedTsb.models, getDetailsForModels) ||
+      (isForumMatch(combinedTsb.models, getDetailsForModels) ||
         latest.manufacturerDate.localeCompare(fetchOtherCutoff) > 0);
 
     if (fetchDetails) {

@@ -1,10 +1,10 @@
+import { getModelNamesForForum, isForumMatch } from './forum-update.js';
 import {
   dateShortDisplay,
   recallDetails,
   recallIdDisplay,
   sibIdDisplay,
 } from './index.js';
-import { isModelMatch, MODEL_DEFINITIONS } from './model-match.js';
 import type { createOutputWriter } from './output.js';
 import type { Tsb } from './tsb.js';
 
@@ -17,7 +17,7 @@ export const writePageHeader = (
     .sort()
     .map(
       (m) =>
-        `<option value="${m}.html"${m === model ? ' selected' : ''}>${m} (${[...(MODEL_DEFINITIONS.get(m)?.models?.keys() ?? [])].join(', ')})</option>`,
+        `<option value="${m}.html"${m === model ? ' selected' : ''}>${m} (${getModelNamesForForum(m).join(', ')})</option>`,
     )
     .join('');
   writer.writeLine(`
@@ -148,7 +148,7 @@ export const writeSibEntry = (
   for (const tsbModel of tsb.models.sort((a, b) =>
     a.model.localeCompare(b.model),
   )) {
-    if (!isModelMatch([tsbModel], modelSlice)) {
+    if (!isForumMatch([tsbModel], modelSlice)) {
       otherModels++;
       continue;
     }

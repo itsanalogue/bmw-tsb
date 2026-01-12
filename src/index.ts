@@ -3,9 +3,14 @@ import { readDatabase, saveDatabase } from './database.js';
 import { createOutputWriter } from './output.js';
 import { sendMessage } from './email.js';
 import log from './log.js';
-import { isModelMatch, MODEL_DEFINITIONS } from './model-match.js';
-import { FORUM_POST_MAX_LENGTH, updateForumPosts } from './forum-update.js';
+import {
+  FORUM_MODEL_GROUPS,
+  FORUM_POST_MAX_LENGTH,
+  isForumMatch,
+  updateForumPosts,
+} from './forum-update.js';
 import { writePageFooter, writePageHeader, writeSibEntry } from './gh-pages.js';
+import { getModelCode } from './model-codes.js';
 
 export function parseTsbDate(
   input: string | undefined | null,
@@ -119,7 +124,7 @@ const writeForumEntry = (
   for (const tsbModel of tsb.models.sort((a, b) =>
     a.model.localeCompare(b.model),
   )) {
-    if (!isModelMatch([tsbModel], modelSlice)) {
+    if (!isForumMatch([tsbModel], modelSlice)) {
       otherModels++;
       continue;
     }
@@ -149,18 +154,40 @@ export async function processTsbs(make: string, models: string[]) {
   const records = await readTsbFiles(dataStore, make);
   const tsbs = await getTsbs(dataStore, records, modelSet);
 
+  const mappedModels = new Map<string, string | undefined>();
+  for (const tsb of tsbs) {
+    for (const model of tsb.models) {
+      for (const year of model.years) {
+        if (Number(year) >= 2024 && Number(year) < 9999) {
+          const modelAndYear = `${year} ${make} ${model.model}`;
+          if (!mappedModels.has(modelAndYear)) {
+            mappedModels.set(modelAndYear, getModelCode(model));
+          }
+        }
+      }
+    }
+  }
+
+  for (const [model, code] of [...mappedModels.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  )) {
+    if (!code) {
+      log.info(`Unmapped model: ${model}`);
+    }
+  }
+
   log.info(
     `Found ${tsbs.length} ${make} service bulletins or recalls in NHTSA dataset.`,
   );
 
   await saveDatabase(dataStore);
 
-  const allConfiguredModels = new Set(MODEL_DEFINITIONS.keys());
+  const allConfiguredModels = new Set(FORUM_MODEL_GROUPS.keys());
   const forumWriters = new Map<string, ReturnType<typeof createOutputWriter>>();
 
   //Add chronological forum output organized by model and calendar year
   for (const tsb of tsbs
-    .filter((t) => isModelMatch(t.models, modelSet))
+    .filter((t) => isForumMatch(t.models, modelSet))
     .sort((a, b) => a.manufacturerDate.localeCompare(b.manufacturerDate))) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
@@ -170,7 +197,7 @@ export async function processTsbs(make: string, models: string[]) {
 
     for (const model of models) {
       const modelSlice = new Set([model]);
-      if (isModelMatch(tsb.models, modelSlice)) {
+      if (isForumMatch(tsb.models, modelSlice)) {
         modelCounts.set(model, (modelCounts.get(model) ?? 0) + 1);
         const writerKey = `${tsbYear}-${model}`;
 
@@ -196,14 +223,12 @@ export async function processTsbs(make: string, models: string[]) {
   //Add reverse chronological forum output organized by model and new/recent
   const recentCountMap = new Map<string, number>();
   for (const tsb of tsbs
-    .filter((t) => isModelMatch(t.models, allConfiguredModels))
+    .filter((t) => isForumMatch(t.models, allConfiguredModels))
     .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??
       new Date();
-
-    const tsbModelSet = new Set(tsb.models.map((m) => m.model));
 
     const allWriterKey = `ALL-${make}`;
     const recentCountAll = recentCountMap.get(allWriterKey) ?? 0;
@@ -217,7 +242,7 @@ export async function processTsbs(make: string, models: string[]) {
         allWriter.writeLine('');
       }
       if (allWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
-        writeForumEntry(allWriter, tsb, date, tsbModelSet);
+        writeForumEntry(allWriter, tsb, date, modelSet);
       }
     }
 
@@ -229,14 +254,14 @@ export async function processTsbs(make: string, models: string[]) {
         forumWriters.set(allNewWriterKey, allNewWriter);
       }
       if (allNewWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
-        writeForumEntry(allNewWriter, tsb, date, tsbModelSet);
+        writeForumEntry(allNewWriter, tsb, date, modelSet);
       }
     }
 
     for (const model of models) {
       const modelSlice = new Set([model]);
 
-      if (isModelMatch(tsb.models, modelSlice)) {
+      if (isForumMatch(tsb.models, modelSlice)) {
         if (tsb.newData) {
           const writerKey = `NEW-${model}`;
           let writer = forumWriters.get(writerKey);
@@ -283,7 +308,7 @@ export async function processTsbs(make: string, models: string[]) {
   >();
 
   for (const tsb of tsbs
-    .filter((t) => isModelMatch(t.models, allConfiguredModels))
+    .filter((t) => isForumMatch(t.models, allConfiguredModels))
     .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
@@ -298,7 +323,7 @@ export async function processTsbs(make: string, models: string[]) {
         ghPageWriters.set(writerKey, writer);
         writePageHeader(writer, 'New', allConfiguredModels);
       }
-      writeSibEntry(writer, tsb, date, new Set(tsb.models.map((m) => m.model)));
+      writeSibEntry(writer, tsb, date, modelSet);
     }
 
     const recentCountAll = recentCountMap.get(make) ?? 0;
@@ -311,16 +336,11 @@ export async function processTsbs(make: string, models: string[]) {
         ghPageWriters.set(ghWriterKey, allWriter);
         writePageHeader(allWriter, '', allConfiguredModels);
       }
-      writeSibEntry(
-        allWriter,
-        tsb,
-        date,
-        new Set(tsb.models.map((m) => m.model)),
-      );
+      writeSibEntry(allWriter, tsb, date, modelSet);
     }
     for (const model of [...allConfiguredModels]) {
       const modelSlice = new Set([model]);
-      if (isModelMatch(tsb.models, modelSlice)) {
+      if (isForumMatch(tsb.models, modelSlice)) {
         const ghWriterKey = `${model}.html`;
         let pageWriter = ghPageWriters.get(ghWriterKey);
         if (!pageWriter) {
@@ -385,7 +405,7 @@ export async function processTsbs(make: string, models: string[]) {
       new Date();
 
     addEmailEntry(
-      isModelMatch(tsb.models, modelSet) ? emailModelList : emailMakeList,
+      isForumMatch(tsb.models, modelSet) ? emailModelList : emailMakeList,
       tsb,
       date,
     );
@@ -423,7 +443,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const make = 'BMW';
   let models = (process.argv[2] ?? '').split(',').filter((s) => s.length > 0);
   if (models.length === 0) {
-    models = [...MODEL_DEFINITIONS.keys()];
+    models = [...FORUM_MODEL_GROUPS.keys()];
   }
   try {
     await processTsbs(make, models);

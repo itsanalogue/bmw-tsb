@@ -4,6 +4,7 @@ import log from './log.js';
 import { saveDatabase, type TsbDataStore } from './database.js';
 import * as crypto from 'crypto';
 import { getOutputPath } from './output.js';
+import { MODEL_CODE_MAP } from './model-codes.js';
 
 export const FORUM_POST_MAX_LENGTH = 100000; //buffer for actual limit of 105000
 
@@ -152,11 +153,6 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-I20/RECENT.txt',
   },
   {
-    postId: '32284233',
-    forumDomain: 'bmwi.bimmerpost.com',
-    contentPath: 'BMW-I20/2025.txt',
-  },
-  {
     postId: '32284235',
     forumDomain: 'bmwi.bimmerpost.com',
     contentPath: 'BMW-I20/2026.txt',
@@ -167,6 +163,55 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-I20/2027.txt',
   },
 ];
+
+export const FORUM_MODEL_GROUPS = new Map<string, string[]>([
+  ['G01', ['G01', 'G02']],
+  ['G05', ['G05', 'G06']],
+  ['G07', ['G07']],
+  ['G09', ['G09']],
+  ['G14', ['G14', 'G15', 'G16', 'F91', 'F92', 'F93']],
+  ['G20', ['G20', 'G21', 'G22', 'G23']],
+  ['G26', ['G26']],
+  ['G29', ['G29']],
+  ['G42', ['G42']],
+  ['G45', ['G45']],
+  ['G60', ['G60', 'G61']],
+  ['G70', ['G70']],
+  ['G80', ['G80', 'G81', 'G82', 'G83']],
+  ['G87', ['G87']],
+  ['G90', ['G90', 'G99']],
+  ['I20', ['I20']],
+  ['U11', ['U10', 'U11']],
+]);
+
+export const isForumMatch = (
+  models: { code?: string }[],
+  forumCodes: Set<string>,
+): boolean => {
+  const matchingCodes = new Set();
+  for (const code of forumCodes.values()) {
+    const codeValues = FORUM_MODEL_GROUPS.get(code) ?? [];
+    for (const cv of codeValues) {
+      matchingCodes.add(cv);
+    }
+  }
+
+  return models.some((m) => m.code && matchingCodes.has(m.code));
+};
+
+export const getModelNamesForForum = (forumCode: string) => {
+  const modelNames = new Set<string>();
+  const allCodes = FORUM_MODEL_GROUPS.get(forumCode) ?? [];
+  for (const code of allCodes) {
+    const modelDef = MODEL_CODE_MAP.get(code);
+    if (modelDef) {
+      for (const model of modelDef.models.keys()) {
+        modelNames.add(model);
+      }
+    }
+  }
+  return [...modelNames].sort();
+};
 
 // effectively converting to Windows-1252
 export const encodeContentForVbulletin = (s: string) => {

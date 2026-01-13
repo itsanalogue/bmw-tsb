@@ -369,6 +369,9 @@ export async function readTsbFiles(
     for (const record of fileRecords) {
       records.push(record);
     }
+    log.info(
+      `Read ${fileRecords.length} records from ${baseName} dated ${source.cacheDate}`,
+    );
   }
 
   return records;

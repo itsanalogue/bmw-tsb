@@ -147,6 +147,18 @@ const writeForumEntry = (
   writer.writeLine(' ');
 };
 
+const tsbDateSort = (a: Tsb, b: Tsb) => {
+  let compared = a.manufacturerDate.localeCompare(b.manufacturerDate);
+  if (compared !== 0) {
+    return compared;
+  }
+  compared = a.nhtsaDate.localeCompare(b.nhtsaDate);
+  if (compared !== 0) {
+    return compared;
+  }
+  return a.nhtsaID.localeCompare(b.nhtsaID);
+};
+
 export async function processTsbs(make: string, models: string[]) {
   const modelSet = new Set(models);
   const modelCounts = new Map<string, number>();
@@ -188,7 +200,7 @@ export async function processTsbs(make: string, models: string[]) {
   //Add chronological forum output organized by model and calendar year
   for (const tsb of tsbs
     .filter((t) => isForumMatch(t.models, modelSet))
-    .sort((a, b) => a.manufacturerDate.localeCompare(b.manufacturerDate))) {
+    .sort(tsbDateSort)) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??
@@ -224,7 +236,7 @@ export async function processTsbs(make: string, models: string[]) {
   const recentCountMap = new Map<string, number>();
   for (const tsb of tsbs
     .filter((t) => isForumMatch(t.models, allConfiguredModels))
-    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
+    .sort(tsbDateSort)) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??
@@ -309,7 +321,7 @@ export async function processTsbs(make: string, models: string[]) {
 
   for (const tsb of tsbs
     .filter((t) => isForumMatch(t.models, allConfiguredModels))
-    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
+    .sort(tsbDateSort)) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??
@@ -398,7 +410,7 @@ export async function processTsbs(make: string, models: string[]) {
       (t) =>
         t.newData && t.manufacturerDate.localeCompare(emailCutoffCompare) > 0,
     )
-    .sort((a, b) => b.manufacturerDate.localeCompare(a.manufacturerDate))) {
+    .sort(tsbDateSort)) {
     const date =
       parseTsbDate(tsb.manufacturerDate) ??
       parseTsbDate(tsb.nhtsaDate) ??

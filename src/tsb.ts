@@ -229,7 +229,11 @@ export async function readTsbFiles(
       '{{YEAR}}',
       new Date().getFullYear().toString(),
     );
-    const source = dataStore.sources[baseName] ?? sourceConfig;
+    const source = { ...sourceConfig };
+    const cachedSource = dataStore.sources[baseName];
+    if (cachedSource) {
+      source.cacheDate = cachedSource.cacheDate;
+    }
 
     const zipUrl = `${sourceConfig.type === 'tsb' ? NHTSA_TSB_SOURCE_ROOT : NHTSA_RECALL_SOURCE_ROOT}${baseName}.zip`;
     const zipPath = path.join(dataDir, `${baseName}.zip`);

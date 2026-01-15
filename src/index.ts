@@ -179,9 +179,13 @@ export async function processTsbs(make: string, models: string[]) {
   const dataStore = readDatabase();
   const records = await readTsbFiles(dataStore, make);
   const tsbs = await getTsbs(dataStore, records, modelSet);
+  let newCount = 0;
 
   const mappedModels = new Map<string, string | undefined>();
   for (const tsb of tsbs) {
+    if (tsb.newData) {
+      newCount++;
+    }
     for (const model of tsb.models) {
       for (const year of model.years) {
         if (Number(year) >= 2024 && Number(year) < 9999) {
@@ -203,7 +207,7 @@ export async function processTsbs(make: string, models: string[]) {
   }
 
   log.info(
-    `Found ${tsbs.length} ${make} service bulletins or recalls in NHTSA dataset.`,
+    `Found ${tsbs.length - newCount} existing and ${newCount} new ${make} service bulletins or recalls in NHTSA dataset.`,
   );
 
   await saveDatabase(dataStore);

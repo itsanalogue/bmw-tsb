@@ -386,6 +386,8 @@ export async function getTsbs(
   records: TsbTextRow[],
   getDetailsForModels: Set<string>,
 ): Promise<Tsb[]> {
+  const hasExistingData = Object.keys(dataStore.tsbDates).length > 0;
+
   const groups = new Map<string, TsbTextRow[]>();
   for (const rec of records) {
     const groupKey = rec.tsbID ?? rec.nhtsaID;
@@ -514,10 +516,10 @@ export async function getTsbs(
       0
     ) {
       log.info(
-        `Service Bulletin ${issueId} updated: ${dataStore.tsbDates[issueId] ?? ''} -> ${latest.manufacturerDate}`,
+        `Service Bulletin ${issueId} updated: ${dataStore.tsbDates[issueId] ?? 'NEW'} -> ${latest.manufacturerDate}`,
       );
       dataStore.tsbDates[issueId] = latest.manufacturerDate;
-      combinedTsb.newData = true;
+      combinedTsb.newData = hasExistingData;
     }
 
     const fetchDetails =

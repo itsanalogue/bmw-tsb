@@ -121,9 +121,7 @@ const writeForumEntry = (
 
   let otherModels = 0;
 
-  for (const tsbModel of tsb.models.sort((a, b) =>
-    a.model.localeCompare(b.model),
-  )) {
+  for (const tsbModel of tsb.models.sort(tsbModelSort)) {
     if (!isForumMatch([tsbModel], modelSlice)) {
       otherModels++;
       continue;
@@ -145,6 +143,20 @@ const writeForumEntry = (
     writer.writeLine(`[URL="${att.url}"]${att.fileName}[/URL]`);
   }
   writer.writeLine(' ');
+};
+
+const tsbModelSort = (a: Tsb['models'][0], b: Tsb['models'][0]) => {
+  let compare = a.model.localeCompare(b.model);
+  if (compare !== 0) {
+    return compare;
+  }
+  const aYear = [...a.years].sort()[0];
+  const bYear = [...b.years].sort()[0];
+  compare = aYear.localeCompare(bYear);
+  if (compare !== 0) {
+    return compare;
+  }
+  return a.code.localeCompare(b.code);
 };
 
 const tsbDateSort = (a: Tsb, b: Tsb) => {

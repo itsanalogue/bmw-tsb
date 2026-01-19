@@ -197,6 +197,18 @@ export async function resolveAssociatedDocuments(
     }[];
   };
 
+  const correction = NHTSA_CORRECTIONS.get(nhtsaID);
+  if (correction && correction.tsbID) {
+    for (const r of data.results) {
+      for (const c of r.manufacturerCommunications ?? []) {
+        log.info(
+          `Applying correction for NHTSA FILE ${nhtsaID} (${c.manufacturerCommunicationNumber}->${correction.tsbID})`,
+        );
+        c.manufacturerCommunicationNumber = correction.tsbID;
+      }
+    }
+  }
+
   dataStore.files[nhtsaID] = [];
 
   const mcs = data.results.flatMap((r) =>
@@ -393,15 +405,21 @@ export async function getTsbs(
   const hasExistingData = Object.keys(dataStore.tsbDates).length > 0;
 
   const groups = new Map<string, TsbTextRow[]>();
+  const correctionLogs = new Set<string>();
   for (let rec of records) {
     const correction = NHTSA_CORRECTIONS.get(rec.nhtsaID);
     if (correction) {
+      correctionLogs.add(`Applying correction for NHTSA ID ${rec.nhtsaID}`);
       rec = { ...rec, ...correction };
     }
 
     const groupKey = rec.tsbID ?? rec.nhtsaID;
     if (!groups.has(groupKey)) groups.set(groupKey, []);
     groups.get(groupKey)!.push(rec);
+  }
+
+  for (const c of [...correctionLogs]) {
+    log.info(c);
   }
 
   const tsbs: Tsb[] = [];
@@ -478,7 +496,7 @@ export async function getTsbs(
 
     const corrections = TSB_CORRECTIONS.get(issueId);
     if (corrections) {
-      log.info(`Applying corrections for ${issueId}`);
+      log.info(`Applying corrections for TSB ${issueId}`);
       for (const c of corrections) {
         for (const correctYear of c.years) {
           const code =

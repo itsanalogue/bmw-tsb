@@ -82,6 +82,10 @@ export interface Tsb extends Omit<TsbTextRow, 'model'> {
   newData: boolean;
 }
 
+const NHTSA_CORRECTIONS: Map<string, Partial<TsbTextRow>> = new Map([
+  ['11013037', { tsbID: 'B011824' }],
+]);
+
 const TSB_CORRECTIONS: Map<string, TsbModelCorrection[]> = new Map([
   [
     'B660725',
@@ -389,7 +393,12 @@ export async function getTsbs(
   const hasExistingData = Object.keys(dataStore.tsbDates).length > 0;
 
   const groups = new Map<string, TsbTextRow[]>();
-  for (const rec of records) {
+  for (let rec of records) {
+    const correction = NHTSA_CORRECTIONS.get(rec.nhtsaID);
+    if (correction) {
+      rec = { ...rec, ...correction };
+    }
+
     const groupKey = rec.tsbID ?? rec.nhtsaID;
     if (!groups.has(groupKey)) groups.set(groupKey, []);
     groups.get(groupKey)!.push(rec);

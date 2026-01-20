@@ -7,9 +7,43 @@ interface ModelDefinition {
 
 export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
   [
+    'F15',
+    {
+      models: new Map([['X5', { startYear: 2014, endYear: 2018 }]]),
+    },
+  ],
+  [
+    'F16',
+    {
+      models: new Map([['X6', { startYear: 2014, endYear: 2018 }]]),
+    },
+  ],
+  [
+    'F30',
+    {
+      models: new Map([
+        ['320I', { startYear: 2012, endYear: 2018 }],
+        ['328I', { startYear: 2012, endYear: 2018 }],
+        ['328D', { startYear: 2014, endYear: 2018 }],
+        ['330I', { startYear: 2012, endYear: 2018 }],
+        ['335I', { startYear: 2012, endYear: 2018 }],
+        ['340I', { startYear: 2012, endYear: 2018 }],
+      ]),
+    },
+  ],
+  [
+    'F32',
+    {
+      models: new Map([
+        ['430I', { startYear: 2012, endYear: 2018 }],
+        ['440I', { startYear: 2012, endYear: 2018 }],
+      ]),
+    },
+  ],
+  [
     'F39',
     {
-      models: new Map([['X2', { startYear: 2016, endYear: 2023 }]]),
+      models: new Map([['X2', { startYear: 2016, endYear: 2022 }]]),
     },
   ],
   [
@@ -242,6 +276,19 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
       ]),
     },
   ],
+  [
+    'G65',
+    {
+      models: new Map([['X5', { startYear: 2027, endYear: 2033 }]]),
+    },
+  ],
+  [
+    'G66',
+    {
+      models: new Map([['X6', { startYear: 2027, endYear: 2033 }]]),
+    },
+  ],
+
   [
     'G70',
     {

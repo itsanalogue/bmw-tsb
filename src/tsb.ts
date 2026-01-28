@@ -88,6 +88,21 @@ const NHTSA_CORRECTIONS: Map<string, Partial<TsbTextRow>> = new Map([
 
 const TSB_CORRECTIONS: Map<string, TsbModelCorrection[]> = new Map([
   [
+    'B650226',
+    [
+      {
+        type: 'remove',
+        model: '230I',
+        years: ['2025'],
+      },
+      {
+        type: 'add',
+        model: '228I',
+        years: ['2025'],
+      },
+    ],
+  ],
+  [
     'B660725',
     [
       {

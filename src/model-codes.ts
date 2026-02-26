@@ -333,6 +333,17 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
     },
   ],
   [
+    'G99',
+    {
+      models: new Map([
+        [
+          'M5 SPORTSWAGON',
+          { startYear: 2024, endYear: 2031, strictMatch: true },
+        ],
+      ]),
+    },
+  ],
+  [
     'I01',
     {
       models: new Map([['I3', { startYear: 2013, endYear: 2022 }]]),

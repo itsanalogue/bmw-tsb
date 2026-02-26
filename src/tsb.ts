@@ -446,10 +446,18 @@ export async function getTsbs(
     .split('T')[0]
     .replaceAll('-', '');
 
+  let excludeReturnCount = 0;
+
   for (const [, group] of groups.entries()) {
     const latest = group.sort((a, b) =>
       b.manufacturerDate.localeCompare(a.manufacturerDate),
     )[0];
+
+    if (latest.summary.endsWith(' Return')) {
+      excludeReturnCount++;
+      continue;
+    }
+
     const combinedTsb: Tsb = {
       ...latest,
       files: [],
@@ -587,6 +595,10 @@ export async function getTsbs(
     }
 
     tsbs.push(combinedTsb);
+  }
+
+  if (excludeReturnCount > 0) {
+    log.info(`Excluded ${excludeReturnCount} parts return bulletins.`);
   }
 
   return tsbs;

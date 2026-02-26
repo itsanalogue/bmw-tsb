@@ -428,7 +428,15 @@ export async function getTsbs(
       rec = { ...rec, ...correction };
     }
 
-    const groupKey = rec.tsbID ?? rec.nhtsaID;
+    let groupKey = rec.tsbID ?? rec.nhtsaID;
+    switch (groupKey) {
+      case 'InVehicle-InApp-Comm':
+      case 'In-Vehicle-InApp-Comm':
+      case 'InVeh-InApp-Comm':
+        groupKey = rec.nhtsaID;
+        break;
+    }
+
     if (!groups.has(groupKey)) groups.set(groupKey, []);
     groups.get(groupKey)!.push(rec);
   }

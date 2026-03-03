@@ -321,6 +321,7 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
     {
       models: new Map([
         ['M2', { startYear: 2023, endYear: 2030, strictMatch: true }],
+        ['M2 CS', { startYear: 2026, endYear: 2026, strictMatch: true }],
       ]),
     },
   ],

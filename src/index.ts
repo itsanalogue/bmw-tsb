@@ -93,7 +93,11 @@ const addEmailEntry = (entries: string[], tsb: Tsb, date: Date) => {
   entry += `${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)} (${dateShortDisplay(date)})\n`;
   entry += `https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}\n`;
   for (const tsbModel of tsb.models) {
-    entry += `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()} ${recallDetails(tsb)}\n`;
+    entry += `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}\n`;
+  }
+  const recallInfo = recallDetails(tsb);
+  if (recallInfo.length > 0) {
+    entry += `${recallInfo}\n`;
   }
   entry += `${tsb.component}\n`;
   entry += `${tsb.summary}\n`;
@@ -198,11 +202,13 @@ export async function processTsbs(make: string, models: string[]) {
     }
   }
 
+  const unmappedModels = new Set<string>();
   for (const [model, code] of [...mappedModels.entries()].sort((a, b) =>
     a[0].localeCompare(b[0]),
   )) {
     if (!code) {
       log.info(`Unmapped model: ${model}`);
+      unmappedModels.add(model);
     }
   }
 
@@ -460,6 +466,14 @@ export async function processTsbs(make: string, models: string[]) {
       bodyText += `============================================================\n\n`;
       for (const item of emailMakeList) {
         bodyText += item;
+      }
+    }
+    if (unmappedModels.size > 0) {
+      bodyText += `\n\n============================================================\n`;
+      bodyText += `New models found without a matching production code:\n`;
+      bodyText += `============================================================\n\n`;
+      for (const item of [...unmappedModels]) {
+        bodyText += `${item}\n`;
       }
     }
     await sendMessage({

@@ -4,7 +4,7 @@ import { encodeContentForVbulletin } from '../forum-update';
 
 test('creates proper encoding for vBulletin quirks', () => {
   const raw = fs.readFileSync('src/__tests__/pre-encode.txt', 'utf-8');
-  const encoded = encodeContentForVbulletin(raw);
+  const encoded = encodeContentForVbulletin(raw, 'iso-8859-1');
   const expected = fs.readFileSync('src/__tests__/post-encode.txt', 'utf-8');
   expect(encoded).toEqual(expected);
 });

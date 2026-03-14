@@ -231,114 +231,122 @@ export const getModelNamesForForum = (forumCode: string) => {
   return [...modelNames].sort();
 };
 
-// effectively converting to Windows-1252
-export const encodeContentForVbulletin = (s: string) => {
-  let out = '';
-  for (let i = 0; i < s.length; i++) {
-    const ch = s.charAt(i);
-    const code = s.charCodeAt(i);
+export const encodeContentForVbulletin = (s: string, charset: string) => {
+  switch (charset) {
+    // effectively converting to Windows-1252, because vBulletin.
+    case 'iso-8859-1':
+      let out = '';
+      for (let i = 0; i < s.length; i++) {
+        const ch = s.charAt(i);
+        const code = s.charCodeAt(i);
 
-    if (code >= 0xa0 && code <= 0xff) {
-      out += `%${code.toString(16).toUpperCase()}`;
-      continue;
-    }
+        if (code >= 0xa0 && code <= 0xff) {
+          out += `%${code.toString(16).toUpperCase()}`;
+          continue;
+        }
 
-    switch (code) {
-      case 0x20ac:
-        out += '%80';
-        break;
-      case 0x201a:
-        out += '%82';
-        break;
-      case 0x192:
-        out += '%83';
-        break;
-      case 0x201e:
-        out += '%84';
-        break;
-      case 0x2026:
-        out += '%85';
-        break;
-      case 0x2020:
-        out += '%86';
-        break;
-      case 0x2021:
-        out += '%87';
-        break;
-      case 0x2c6:
-        out += '%88';
-        break;
-      case 0x2030:
-        out += '%89';
-        break;
-      case 0x160:
-        out += '%8A';
-        break;
-      case 0x2039:
-        out += '%8B';
-        break;
-      case 0x152:
-        out += '%8C';
-        break;
-      case 0x17d:
-        out += '%8E';
-        break;
-      case 0x2018:
-        out += '%91';
-        break;
-      case 0x2019:
-        out += '%92';
-        break;
-      case 0x201c:
-        out += '%93';
-        break;
-      case 0x201d:
-        out += '%94';
-        break;
-      case 0x2022:
-        out += '%95';
-        break;
-      case 0x2013:
-        out += '%96';
-        break;
-      case 0x2014:
-        out += '%97';
-        break;
-      case 0x2dc:
-        out += '%98';
-        break;
-      case 0x2122:
-        out += '%99';
-        break;
-      case 0x161:
-        out += '%9A';
-        break;
-      case 0x203a:
-        out += '%9B';
-        break;
-      case 0x153:
-        out += '%9C';
-        break;
-      case 0x17e:
-        out += '%9E';
-        break;
-      case 0x178:
-        out += '%9F';
-        break;
-      case 0x28:
-      case 0x29:
-        out += `%${code.toString(16)}`;
-        break;
-      case 0x0a:
-        out += '%0D';
-        out += encodeURIComponent(ch);
-        break;
-      default:
-        out += encodeURIComponent(ch);
-        break;
-    }
+        switch (code) {
+          case 0x20ac:
+            out += '%80';
+            break;
+          case 0x201a:
+            out += '%82';
+            break;
+          case 0x192:
+            out += '%83';
+            break;
+          case 0x201e:
+            out += '%84';
+            break;
+          case 0x2026:
+            out += '%85';
+            break;
+          case 0x2020:
+            out += '%86';
+            break;
+          case 0x2021:
+            out += '%87';
+            break;
+          case 0x2c6:
+            out += '%88';
+            break;
+          case 0x2030:
+            out += '%89';
+            break;
+          case 0x160:
+            out += '%8A';
+            break;
+          case 0x2039:
+            out += '%8B';
+            break;
+          case 0x152:
+            out += '%8C';
+            break;
+          case 0x17d:
+            out += '%8E';
+            break;
+          case 0x2018:
+            out += '%91';
+            break;
+          case 0x2019:
+            out += '%92';
+            break;
+          case 0x201c:
+            out += '%93';
+            break;
+          case 0x201d:
+            out += '%94';
+            break;
+          case 0x2022:
+            out += '%95';
+            break;
+          case 0x2013:
+            out += '%96';
+            break;
+          case 0x2014:
+            out += '%97';
+            break;
+          case 0x2dc:
+            out += '%98';
+            break;
+          case 0x2122:
+            out += '%99';
+            break;
+          case 0x161:
+            out += '%9A';
+            break;
+          case 0x203a:
+            out += '%9B';
+            break;
+          case 0x153:
+            out += '%9C';
+            break;
+          case 0x17e:
+            out += '%9E';
+            break;
+          case 0x178:
+            out += '%9F';
+            break;
+          case 0x28:
+          case 0x29:
+            out += `%${code.toString(16)}`;
+            break;
+          case 0x0a:
+            out += '%0D';
+            out += encodeURIComponent(ch);
+            break;
+          default:
+            out += encodeURIComponent(ch);
+            break;
+        }
+      }
+      return out.replace(/%20/g, '+');
+
+    case 'utf-8':
+    case 'default':
+      const encoded = encodeURIComponent(s);
+      return encoded.replace(/%20/g, '+');
   }
-  return out.replace(/%20/g, '+');
 };
 
 async function updatePost({
@@ -369,16 +377,16 @@ async function updatePost({
     );
   }
 
-  let responseCharset = '';
+  let pageCharset = '';
   const charsetMatch = /charset=([^;\s]+)/.exec(
     editPageRes.headers.get('Content-Type') ?? '',
   );
   if (charsetMatch) {
-    responseCharset = charsetMatch[1].toLowerCase();
+    pageCharset = charsetMatch[1].toLowerCase();
   }
 
   let editPageText = '';
-  switch (responseCharset) {
+  switch (pageCharset) {
     case 'iso-8859-1':
       //vBulletin is incorrectly presenting Windows-1252 as ISO-8859-1
       //AND TextDecoder incorrectly decodes Windows-1252 as ISO-8859-1
@@ -421,7 +429,7 @@ async function updatePost({
     await fs.promises.writeFile(existingPostFilePath, decode(existingPostText));
   }
 
-  const encodedContent = encodeContentForVbulletin(content);
+  const encodedContent = encodeContentForVbulletin(content, pageCharset);
 
   const postBody = `reason=&title=&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=updatepost&p=${post.postId}&sbutton=Save+Changes&parseurl=1&emailupdate=1`;
 
@@ -470,6 +478,14 @@ async function replyToThread({
   }
   const newReplyPageText = await startReplyRes.text();
 
+  let pageCharset = '';
+  const charsetMatch = /charset=([^;\s]+)/.exec(
+    startReplyRes.headers.get('Content-Type') ?? '',
+  );
+  if (charsetMatch) {
+    pageCharset = charsetMatch[1].toLowerCase();
+  }
+
   const vbVersion = /vBulletin ([\d\.]+)/.exec(newReplyPageText);
   if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {
     throw new Error(
@@ -496,9 +512,10 @@ async function replyToThread({
   const threadId = threadMatch[1];
   const postReplyUrl = `https://${post.forumDomain}/forums/newreply.php?do=postreply&t=${threadId}`;
 
-  const encodedContent = encodeContentForVbulletin(content);
+  const encodedContent = encodeContentForVbulletin(content, pageCharset);
   const encodedTitle = encodeContentForVbulletin(
     `New ${new Date().toISOString().split('T')[0]}`,
+    pageCharset,
   );
 
   const postBody = `title=${encodedTitle}&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=postreply&t=${threadId}&p=${post.postId}&loggedinuser=${bbuserid}&multiquoteempty=&sbutton=Submit+Reply&parseurl=1&emailupdate=1&rating=0`;

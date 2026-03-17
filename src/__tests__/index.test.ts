@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { parseTsbDate } from '../index.js';
+import { parseTsbDate } from '../tsb.js';
 
 test('parseTsbDate recognizes common formats', () => {
   expect(parseTsbDate('20250115')?.getFullYear()).toBe(2025);

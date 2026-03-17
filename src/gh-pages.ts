@@ -1,12 +1,38 @@
-import { getModelNamesForForum, isForumMatch } from './forum-update.js';
+import {
+  FORUM_MODEL_GROUPS,
+  getModelNamesForForum,
+  isForumMatch,
+} from './forum-update.js';
 import {
   dateShortDisplay,
+  encodeHtml,
   recallDetails,
   recallIdDisplay,
   sibIdDisplay,
-} from './index.js';
-import type { createOutputWriter } from './output.js';
+  tsbDateSortDesc,
+} from './util.js';
+import { createOutputWriter } from './output.js';
 import type { Tsb } from './tsb.js';
+import log from './log.js';
+
+const ghWriters = new Map<string, ReturnType<typeof createOutputWriter>>();
+
+export const getGitHubWriter = (props: {
+  filePath: string;
+  model: string;
+  modelSet: Set<string>;
+}) => {
+  const { filePath, model, modelSet } = props;
+  let writer = ghWriters.get(filePath);
+  if (!writer) {
+    writer = createOutputWriter(filePath, {
+      onEnd: writePageFooter,
+    });
+    writePageHeader(writer, model, modelSet);
+    ghWriters.set(filePath, writer);
+  }
+  return writer;
+};
 
 export const writePageHeader = (
   writer: ReturnType<typeof createOutputWriter>,
@@ -130,12 +156,12 @@ export const writePageHeader = (
 export const writeSibEntry = (
   writer: ReturnType<typeof createOutputWriter>,
   tsb: Tsb,
-  date: Date,
   modelSlice: Set<string>,
 ) => {
+  writer.addEntry();
   writer.writeLine('');
   writer.writeLine(
-    `<div class="dlBox"><dt class="dtHead"><a href="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}" target="offsite">${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}</a>  (${dateShortDisplay(date)})</dt>`,
+    `<div class="dlBox"><dt class="dtHead"><a href="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}" target="offsite">${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}</a>  (${dateShortDisplay(tsb.displayDate)})</dt>`,
   );
 
   const recallInfo = recallDetails(tsb);
@@ -162,7 +188,7 @@ export const writeSibEntry = (
     );
   }
   writer.writeLine(`<dd class="ddHead"><b>${tsb.component}</b></dd>`);
-  writer.writeLine(`<dd>${tsb.summary}</dd>`);
+  writer.writeLine(`<dd>${encodeHtml(tsb.summary)}</dd>`);
   for (const att of tsb.files) {
     writer.writeLine(
       `<dd class="ddHead"><a href="${att.url}" target="offsite">${att.fileName}</a></dd>`,
@@ -172,7 +198,7 @@ export const writeSibEntry = (
 };
 
 export const writePageFooter = (
-  writer: ReturnType<typeof createOutputWriter>,
+  writer: Pick<ReturnType<typeof createOutputWriter>, 'writeLine'>,
 ) => {
   writer.writeLine(`
             </dl>
@@ -180,4 +206,68 @@ export const writePageFooter = (
       </div>
     </body>
 </html>`);
+};
+
+export const closeGitHubWriters = async () => {
+  for (const writer of ghWriters.values()) {
+    await writer.end();
+  }
+
+  const ghSiteMap = createOutputWriter(`gh-pages/sitemap.txt`);
+  for (const pageKey of [...ghWriters.keys()]
+    .map((k) => k.replace('gh-pages/', ''))
+    .sort()) {
+    ghSiteMap.writeLine(`https://itsanalogue.github.io/bmw-tsb/${pageKey}`);
+  }
+  await ghSiteMap.end();
+
+  const size = ghWriters.size;
+  ghWriters.clear();
+  return size;
+};
+
+export const processTsbsForGithubPages = async (
+  tsbs: Tsb[],
+  make: string,
+  models: string[],
+) => {
+  const allConfiguredModels = new Set(FORUM_MODEL_GROUPS.keys());
+  const modelSet = new Set(models);
+
+  for (const tsb of tsbs
+    .filter((t) => isForumMatch(t.models, allConfiguredModels))
+    .sort(tsbDateSortDesc)) {
+    if (tsb.newData) {
+      const ghNewWriter = getGitHubWriter({
+        filePath: `gh-pages/new.html`,
+        model: 'New',
+        modelSet: allConfiguredModels,
+      });
+      writeSibEntry(ghNewWriter, tsb, modelSet);
+    }
+
+    const ghRecentWriter = getGitHubWriter({
+      filePath: `gh-pages/index.html`,
+      model: '',
+      modelSet: allConfiguredModels,
+    });
+    if (ghRecentWriter.entriesWritten() < 500) {
+      writeSibEntry(ghRecentWriter, tsb, modelSet);
+    }
+
+    for (const model of [...allConfiguredModels]) {
+      const modelSlice = new Set([model]);
+      if (isForumMatch(tsb.models, modelSlice)) {
+        const ghModelWriter = getGitHubWriter({
+          filePath: `gh-pages/${model}.html`,
+          model,
+          modelSet: allConfiguredModels,
+        });
+        writeSibEntry(ghModelWriter, tsb, modelSlice);
+      }
+    }
+  }
+
+  const ghWriterCount = await closeGitHubWriters();
+  log.info(`Wrote gh-pages output for ${make} to ${ghWriterCount} files.`);
 };

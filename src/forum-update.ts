@@ -5,6 +5,28 @@ import { saveDatabase, type TsbDataStore } from './database.js';
 import * as crypto from 'crypto';
 import { getOutputPath } from './output.js';
 import { MODEL_CODE_MAP } from './model-codes.js';
+import { generateJSON } from '@tiptap/html';
+import { Bold } from '@tiptap/extension-bold';
+import { Document } from '@tiptap/extension-document';
+import { HardBreak } from '@tiptap/extension-hard-break';
+import { Italic } from '@tiptap/extension-italic';
+import { Link } from '@tiptap/extension-link';
+import { Paragraph } from '@tiptap/extension-paragraph';
+import { Text } from '@tiptap/extension-text';
+import { Color, TextStyle, FontSize } from '@tiptap/extension-text-style';
+
+const TIP_TAP_EXTENSIONS = [
+  Bold,
+  Color,
+  Document,
+  FontSize,
+  HardBreak,
+  Italic,
+  Link,
+  Paragraph,
+  Text,
+  TextStyle,
+];
 
 export const FORUM_POST_MAX_LENGTH = 100000; //buffer for actual limit of 105000
 
@@ -13,9 +35,49 @@ interface ForumPost {
   forumDomain: string;
   contentPath: string;
   reply?: boolean;
+  forceUpdate?: boolean;
 }
+
+interface BimmerpostResponse {
+  userData?: {
+    userid?: number;
+    username?: string;
+  };
+  appData?: {
+    success?: number;
+    message?: string;
+    postid?: string;
+  }[];
+}
+
+interface BimmerpostLoginResponse {
+  userData?: {
+    userid?: number;
+  };
+  appData?: {
+    success?: number;
+    errorMsg?: string;
+  };
+}
+
+const USER_AGENT = 'itsanalogue-bmw-tsb-updates';
 const VBULLETIN_VERSION = '3.8.11';
 const FORUM_POSTS: ForumPost[] = [
+  {
+    //TEST thread: https://g80.bimmerpost.com/forums/showthread.php?t=2233316
+    postId: '32677698',
+    forumDomain: 'g80.bimmerpost.com',
+    contentPath: 'BMW-G80/RECENT.html',
+    //forceUpdate: true,
+  },
+  {
+    //TEST thread: https://g80.bimmerpost.com/forums/showthread.php?t=2233316
+    postId: '32677697',
+    forumDomain: 'g80.bimmerpost.com',
+    contentPath: 'BMW-G80/NEW.html',
+    reply: true,
+    //forceUpdate: true,
+  },
   {
     postId: '32308235',
     forumDomain: 'g80.bimmerpost.com',
@@ -349,14 +411,20 @@ export const encodeContentForVbulletin = (s: string, charset: string) => {
   }
 };
 
-async function updatePost({
-  bbuserid,
-  bbpassword,
+function getVbulletinCookies() {
+  const bbpassword = process.env.BBPASSWORD;
+  const bbuserid = process.env.BBUSERID;
+
+  if (!bbuserid || !bbpassword) {
+    return undefined;
+  }
+  return `bbuserid=${bbuserid}; bbpassword=${bbpassword}`;
+}
+
+async function updatePostVbulletin({
   content,
   post,
 }: {
-  bbuserid: string;
-  bbpassword: string;
   content: string;
   post: ForumPost;
 }) {
@@ -364,10 +432,18 @@ async function updatePost({
   const editUrl = `https://${post.forumDomain}/forums/editpost.php?do=editpost&p=${post.postId}`;
   const updateUrl = `https://${post.forumDomain}/forums/editpost.php?do=updatepost&p=${post.postId}`;
 
+  const authCookie = getVbulletinCookies();
+  if (!authCookie) {
+    log.info(
+      `No credentials, skipping update of post ${post.postId} on ${post.forumDomain}`,
+    );
+    return false;
+  }
+
   const editPageRes = await fetch(editUrl, {
     headers: {
-      'User-Agent': 'itsanalogue-bmw-tsb-updates',
-      Cookie: `bbuserid=${bbuserid}; bbpassword=${bbpassword}`,
+      'User-Agent': USER_AGENT,
+      Cookie: authCookie,
       Referer: showUrl,
     },
   });
@@ -412,7 +488,7 @@ async function updatePost({
   const csrfTokenMatch = /var\sSECURITYTOKEN\s=\s"([^"]+)";/.exec(editPageText);
   if (!csrfTokenMatch) {
     throw new Error(
-      `Failed to read CSRF token for ${post.postId} on ${post.forumDomain}`,
+      `Failed to read CSRF token from page var for ${post.postId} on ${post.forumDomain}`,
     );
   }
   const csrfToken = csrfTokenMatch[1];
@@ -436,9 +512,9 @@ async function updatePost({
   const updatePageRes = await fetch(updateUrl, {
     method: 'POST',
     headers: {
-      'User-Agent': 'itsanalogue-bmw-tsb-updates',
+      'User-Agent': USER_AGENT,
       'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: `bbuserid=${bbuserid}; bbpassword=${bbpassword}`,
+      Cookie: authCookie,
       Referer: editUrl,
     },
     body: postBody,
@@ -448,26 +524,31 @@ async function updatePost({
       `Failed to post to ${post.postId} on ${post.forumDomain}: ${editPageRes.status} ${editPageRes.statusText}`,
     );
   }
+  return true;
 }
 
-async function replyToThread({
-  bbuserid,
-  bbpassword,
+async function replyToThreadVbulletin({
   content,
   post,
 }: {
-  bbuserid: string;
-  bbpassword: string;
   content: string;
   post: ForumPost;
 }) {
   const showUrl = `https://${post.forumDomain}/forums/showpost.php?p=${post.postId}`;
   const startReplyUrl = `https://${post.forumDomain}/forums/newreply.php?do=newreply&p=${post.postId}&noquote=1`;
 
+  const authCookie = getVbulletinCookies();
+  if (!authCookie) {
+    log.info(
+      `No credentials, skipping reply to post ${post.postId} on ${post.forumDomain}`,
+    );
+    return false;
+  }
+
   const startReplyRes = await fetch(startReplyUrl, {
     headers: {
-      'User-Agent': 'itsanalogue-bmw-tsb-updates',
-      Cookie: `bbuserid=${bbuserid}; bbpassword=${bbpassword}`,
+      'User-Agent': USER_AGENT,
+      Cookie: authCookie,
       Referer: showUrl,
     },
   });
@@ -498,7 +579,7 @@ async function replyToThread({
   );
   if (!csrfTokenMatch) {
     throw new Error(
-      `Failed to read CSRF token for ${post.postId} on ${post.forumDomain}`,
+      `Failed to read CSRF token from page var for ${post.postId} on ${post.forumDomain}`,
     );
   }
   const csrfToken = csrfTokenMatch[1];
@@ -518,14 +599,14 @@ async function replyToThread({
     pageCharset,
   );
 
-  const postBody = `title=${encodedTitle}&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=postreply&t=${threadId}&p=${post.postId}&loggedinuser=${bbuserid}&multiquoteempty=&sbutton=Submit+Reply&parseurl=1&emailupdate=1&rating=0`;
+  const postBody = `title=${encodedTitle}&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=postreply&t=${threadId}&p=${post.postId}&loggedinuser=${process.env.BBUSERID}&multiquoteempty=&sbutton=Submit+Reply&parseurl=1&emailupdate=1&rating=0`;
 
   const postReplyPageRes = await fetch(postReplyUrl, {
     method: 'POST',
     headers: {
-      'User-Agent': 'itsanalogue-bmw-tsb-updates',
+      'User-Agent': USER_AGENT,
       'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: `bbuserid=${bbuserid}; bbpassword=${bbpassword}`,
+      Cookie: authCookie,
       Referer: startReplyUrl,
     },
     body: postBody,
@@ -533,27 +614,283 @@ async function replyToThread({
 
   if (!(postReplyPageRes.ok || postReplyPageRes.status === 302)) {
     throw new Error(
-      `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${startReplyRes.status} ${startReplyRes.statusText}`,
+      `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${postReplyPageRes.status} ${postReplyPageRes.statusText}`,
     );
   }
+  return true;
+}
+
+let bimmerpostAuthCookie: string | undefined = undefined;
+async function getBimmerpostAuthCookie(domain: string) {
+  const username = process.env.FORUM_USERNAME;
+  const password = process.env.FORUM_PASSWORD;
+
+  if (!username || !password) {
+    return undefined;
+  }
+
+  if (bimmerpostAuthCookie) {
+    return bimmerpostAuthCookie;
+  }
+
+  const loginUrl = `https://${domain}/beta/login.php`;
+  let anonCsrfCookie: string | undefined = undefined;
+
+  const loginPageRes = await fetch(loginUrl, {
+    headers: {
+      'User-Agent': USER_AGENT,
+    },
+  });
+
+  const loginCookies = loginPageRes.headers.getSetCookie();
+  for (const cookie of loginCookies) {
+    if (cookie.startsWith('csrf=')) {
+      anonCsrfCookie = cookie.split(';')[0];
+    }
+  }
+  if (!anonCsrfCookie) {
+    throw new Error(`Failed to read pre-auth CSRF cookie for login.`);
+  }
+
+  const loginPageText = await loginPageRes.text();
+  const csrfTokenMatch = /<meta\sname="csrf-token"\scontent="([^"]+)">/.exec(
+    loginPageText,
+  );
+  if (!csrfTokenMatch) {
+    throw new Error(`Failed to read CSRF token from login page.`);
+  }
+  const csrfToken = csrfTokenMatch[1];
+
+  const loginPostRes = await fetch(`${loginUrl}?api=1&web=1`, {
+    method: 'POST',
+    headers: {
+      'User-Agent': USER_AGENT,
+      'X-CSRF-Token': csrfToken,
+      'Content-Type': 'application/json',
+      Cookie: anonCsrfCookie,
+      Referer: loginUrl,
+    },
+    body: JSON.stringify({
+      do: 'login',
+      username,
+      password,
+      remember_me: 0,
+    }),
+  });
+  if (!loginPostRes.ok) {
+    throw new Error(`Failed to login. ${loginPageRes.statusText}`);
+  }
+  const loginPostJson = (await loginPostRes.json()) as BimmerpostLoginResponse;
+  if (
+    loginPostJson.appData?.success === 0 ||
+    loginPostJson.userData?.userid === 0
+  ) {
+    throw new Error(`Failed to login: ${loginPostJson.appData?.errorMsg}`);
+  }
+
+  let authCookie = '';
+  const setCookies = loginPostRes.headers.getSetCookie();
+  for (const cookie of setCookies) {
+    if (cookie.startsWith('csrf=')) {
+      authCookie = cookie.split(';')[0];
+    }
+  }
+  if (!authCookie) {
+    throw new Error(`Failed to read authenticated CSRF cookie for login.`);
+  }
+
+  if (!bimmerpostAuthCookie) {
+    bimmerpostAuthCookie = authCookie;
+  }
+  return bimmerpostAuthCookie;
+}
+
+export async function updatePostBimmerpost({
+  content,
+  post,
+}: {
+  content: string;
+  post: ForumPost;
+}) {
+  const authCookie = await getBimmerpostAuthCookie(post.forumDomain);
+  if (!authCookie) {
+    log.info(
+      `No credentials, skipping update of post ${post.postId} on ${post.forumDomain}`,
+    );
+    return false;
+  }
+
+  const showUrl = `https://${post.forumDomain}/beta/showthread.php?p=${post.postId}`;
+  const postUrl = `https://${post.forumDomain}/beta/threadpost.php`;
+
+  const showPageRes = await fetch(showUrl, {
+    headers: {
+      'User-Agent': USER_AGENT,
+      Cookie: authCookie,
+    },
+  });
+  if (!showPageRes.ok) {
+    throw new Error(
+      `Failed to load edit page for post ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
+    );
+  }
+
+  const showPageText = await showPageRes.text();
+  const csrfTokenMatch = /<meta\sname="csrf-token"\scontent="([^"]+)">/.exec(
+    showPageText,
+  );
+  if (!csrfTokenMatch) {
+    throw new Error(
+      `Failed to read CSRF token from page meta tag for post ${post.postId} on ${post.forumDomain}`,
+    );
+  }
+  const csrfToken = csrfTokenMatch[1];
+
+  const existingPostMatch = new RegExp(
+    `div\\s+class="post_content"[^>]+postid="${post.postId}"[^>]+>(.+?)<\\/div>`,
+    'gms',
+  ).exec(showPageText);
+  if (existingPostMatch) {
+    const existingPostText = existingPostMatch[1];
+    const existingPostFilePath = getOutputPath(
+      post.contentPath.replace('.html', '.prior.html'),
+    );
+    await fs.promises.writeFile(
+      existingPostFilePath,
+      `<p>${existingPostText}</p>`,
+    );
+  }
+
+  const encodedContent = generateJSON(content, TIP_TAP_EXTENSIONS);
+
+  const postBody = new FormData();
+  postBody.append('do', 'editapost');
+  postBody.append('tid', null);
+  postBody.append('postid', post.postId);
+  postBody.append('thetitle', '');
+  postBody.append('message_json', JSON.stringify(encodedContent));
+  postBody.append('type', 0);
+
+  const updatePageRes = await fetch(postUrl, {
+    method: 'POST',
+    headers: {
+      'User-Agent': USER_AGENT,
+      'X-CSRF-Token': csrfToken,
+      Cookie: authCookie,
+      Referer: showUrl,
+    },
+    body: postBody,
+  });
+  if (!updatePageRes.ok) {
+    throw new Error(
+      `Failed to post to ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
+    );
+  }
+  const postJson = (await updatePageRes.json()) as BimmerpostResponse;
+  if (postJson.appData && postJson.appData[0]?.success === 0) {
+    throw new Error(
+      `Failed to post to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+    );
+  }
+  return true;
+}
+
+export async function replyToThreadBimmerpost({
+  content,
+  post,
+}: {
+  content: string;
+  post: ForumPost;
+}) {
+  const authCookie = await getBimmerpostAuthCookie(post.forumDomain);
+  if (!authCookie) {
+    log.info(
+      `No credentials, skipping reply to post ${post.postId} on ${post.forumDomain}`,
+    );
+    return false;
+  }
+
+  const showUrl = `https://${post.forumDomain}/beta/showthread.php?p=${post.postId}`;
+  const postUrl = `https://${post.forumDomain}/beta/threadpost.php`;
+
+  const showPageRes = await fetch(showUrl, {
+    headers: {
+      'User-Agent': USER_AGENT,
+      Cookie: authCookie,
+    },
+  });
+  if (!showPageRes.ok) {
+    throw new Error(
+      `Failed to load edit page for post ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
+    );
+  }
+
+  const showPageText = await showPageRes.text();
+  const csrfTokenMatch = /<meta\sname="csrf-token"\scontent="([^"]+)">/.exec(
+    showPageText,
+  );
+  if (!csrfTokenMatch) {
+    throw new Error(
+      `Failed to read CSRF token from page meta tag for ${post.postId} on ${post.forumDomain}`,
+    );
+  }
+  const csrfToken = csrfTokenMatch[1];
+
+  const threadMatch =
+    /<div\sclass="new_reply_editor"\stype="newreply"\sthreadid="([^"]+)"/.exec(
+      showPageText,
+    );
+  if (!threadMatch) {
+    throw new Error(
+      `Failed to read thread ID for ${post.postId} on ${post.forumDomain}`,
+    );
+  }
+  const threadId = threadMatch[1];
+
+  const encodedContent = generateJSON(content, TIP_TAP_EXTENSIONS);
+
+  const postBody = new FormData();
+  postBody.append('do', 'newthreadpost');
+  postBody.append('tid', threadId);
+  postBody.append('postid', null);
+  postBody.append('thetitle', '');
+  postBody.append('message_json', JSON.stringify(encodedContent));
+  postBody.append('type', 0);
+
+  const pageReplyRes = await fetch(postUrl, {
+    method: 'POST',
+    headers: {
+      'User-Agent': USER_AGENT,
+      'X-CSRF-Token': csrfToken,
+      Cookie: authCookie,
+      Referer: showUrl,
+    },
+    body: postBody,
+  });
+
+  if (!(pageReplyRes.ok || pageReplyRes.status === 302)) {
+    throw new Error(
+      `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${pageReplyRes.status} ${pageReplyRes.statusText}`,
+    );
+  }
+  const postJson = (await pageReplyRes.json()) as BimmerpostResponse;
+  if (postJson.appData && postJson.appData[0]?.success === 0) {
+    throw new Error(
+      `Failed to reply to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+    );
+  }
+  return true;
 }
 
 export async function updateForumPosts(dataStore: TsbDataStore) {
-  const bbpassword = process.env.BBPASSWORD;
-  const bbuserid = process.env.BBUSERID;
-
-  if (!bbuserid || !bbpassword) {
-    log.info('Forum credentials are not configured.  Skipping updates.');
-    return 0;
-  }
-
   let updateCount = 0;
   let retries = 4;
-
   let lastPostTs = 0;
 
   for (const post of FORUM_POSTS) {
     const contentFilePath = getOutputPath(post.contentPath);
+    const contentFileType = post.contentPath.split('.')[1];
+
     if (fs.existsSync(contentFilePath)) {
       const content = fs.readFileSync(contentFilePath, 'utf-8');
       const contentHash = crypto
@@ -562,12 +899,13 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
         .digest('hex');
 
       const existingHash = dataStore.forumPostHashes[post.contentPath];
-      if (existingHash && existingHash === contentHash) {
+      if (existingHash && existingHash === contentHash && !post.forceUpdate) {
         continue;
       }
 
       while (retries > 0) {
         try {
+          let updated = false;
           if (post.reply) {
             const timeSincePost = new Date().getTime() - lastPostTs;
             if (timeSincePost < 21000) {
@@ -577,20 +915,37 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
               );
             }
 
-            await replyToThread({ bbpassword, bbuserid, content, post });
+            updated =
+              contentFileType === 'html'
+                ? await replyToThreadBimmerpost({
+                    content,
+                    post,
+                  })
+                : await replyToThreadVbulletin({
+                    content,
+                    post,
+                  });
             lastPostTs = new Date().getTime();
-            log.info(
-              `Replied to forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
-            );
           } else {
-            await updatePost({ bbpassword, bbuserid, content, post });
-            log.info(
-              `Updated forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
-            );
+            updated =
+              contentFileType === 'html'
+                ? await updatePostBimmerpost({
+                    content,
+                    post,
+                  })
+                : await updatePostVbulletin({
+                    content,
+                    post,
+                  });
           }
-          updateCount++;
-          // eslint-disable-next-line require-atomic-updates
-          dataStore.forumPostHashes[post.contentPath] = contentHash;
+          if (updated) {
+            log.info(
+              `${post.reply ? 'Replied to' : 'Updated'} forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
+            );
+            updateCount++;
+            // eslint-disable-next-line require-atomic-updates
+            dataStore.forumPostHashes[post.contentPath] = contentHash;
+          }
           break;
         } catch (error) {
           let canRetry = false;

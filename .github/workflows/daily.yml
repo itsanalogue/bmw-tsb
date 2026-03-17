@@ -60,6 +60,8 @@ jobs:
         env:
           BBUSERID: ${{ secrets.BBUSERID }}
           BBPASSWORD: ${{ secrets.BBPASSWORD }}
+          FORUM_USERNAME: ${{ secrets.FORUM_USERNAME }}
+          FORUM_PASSWORD: ${{ secrets.FORUM_PASSWORD }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}

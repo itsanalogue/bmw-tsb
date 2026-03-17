@@ -11,9 +11,13 @@ export const getOutputPath = (fileName: string) => {
 
 export const createOutputWriter = (
   fileName: string,
-  opts?: { append?: boolean },
+  opts?: {
+    append?: boolean;
+    onEnd?: (writer: { writeLine: (line: string) => void }) => void;
+  },
 ) => {
   let lengthWritten = 0;
+  let entriesWritten = 0;
 
   const filePath = getOutputPath(fileName);
   fs.mkdirSync(filePath.substring(0, filePath.lastIndexOf('/')), {
@@ -25,16 +29,23 @@ export const createOutputWriter = (
     encoding: 'utf8',
   });
 
+  const writeLine = (line: string) => {
+    const terminated = line.endsWith('\n');
+    stream.write(terminated ? line : line + '\n');
+    lengthWritten += line.length;
+    lengthWritten += terminated ? 0 : 1;
+  };
+
   return {
+    addEntry: () => ++entriesWritten,
+    entriesWritten: () => entriesWritten,
     lengthWritten: () => lengthWritten,
-    writeLine: (line: string) => {
-      const terminated = line.endsWith('\n');
-      stream.write(terminated ? line : line + '\n');
-      lengthWritten += line.length;
-      lengthWritten += terminated ? 0 : 1;
-    },
+    writeLine,
     end: () =>
       new Promise<void>((resolve, reject) => {
+        if (opts?.onEnd) {
+          opts.onEnd({ writeLine });
+        }
         stream.end(() => resolve());
         stream.on('error', (err) => reject(err));
       }),

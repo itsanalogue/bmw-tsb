@@ -78,6 +78,7 @@ export interface TsbModelCorrection {
 
 export interface Tsb extends Omit<TsbTextRow, 'model'> {
   models: { code: string; model: string; years: Set<string> }[];
+  displayDate: Date;
   files: TsbDataStore['files'][0];
   newData: boolean;
 }
@@ -172,6 +173,32 @@ const TSB_SOURCES: TsbDataStore['sources'][0][] = [
     cacheDate: undefined,
   },
 ];
+
+export function parseTsbDate(
+  input: string | undefined | null,
+): Date | undefined {
+  if (!input) return undefined;
+  const s = String(input).trim();
+  if (s.length === 0) return undefined;
+
+  // YYYYMMDD
+  let m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+
+  // MM/DD/YYYY
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]));
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+
+  // Fallback to Date.parse for other ISO-like formats
+  const parsed = Date.parse(s);
+  if (!Number.isNaN(parsed)) return new Date(parsed);
+
+  return undefined;
+}
 
 export function sanitizeSummary(s: string): string {
   if (!s) return s;
@@ -415,8 +442,9 @@ export async function readTsbFiles(
 export async function getTsbs(
   dataStore: TsbDataStore,
   records: TsbTextRow[],
-  getDetailsForModels: Set<string>,
+  models: string[],
 ): Promise<Tsb[]> {
+  const getDetailsForModels = new Set(models);
   const hasExistingData = Object.keys(dataStore.tsbDates).length > 0;
 
   const groups = new Map<string, TsbTextRow[]>();
@@ -466,11 +494,17 @@ export async function getTsbs(
       continue;
     }
 
+    const displayDate =
+      parseTsbDate(latest.manufacturerDate) ??
+      parseTsbDate(latest.nhtsaDate) ??
+      new Date();
+
     const combinedTsb: Tsb = {
       ...latest,
       files: [],
       models: [],
       newData: false,
+      displayDate,
     };
 
     const modelYears = new Map<

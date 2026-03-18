@@ -365,7 +365,11 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
   [
     'I20',
     {
-      models: new Map([['IX', { startYear: 2021, endYear: 2028 }]]),
+      models: new Map([
+        ['IX', { startYear: 2021, endYear: 2028, strictMatch: true }],
+        ['IX M60', { startYear: 2021, endYear: 2028, strictMatch: true }],
+        ['IX XDRIVE45', { startYear: 2021, endYear: 2028, strictMatch: true }],
+      ]),
     },
   ],
   [

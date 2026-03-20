@@ -22,6 +22,9 @@ const forumWriters = new Map<string, ReturnType<typeof createOutputWriter>>();
 export const FORUM_POST_HTML_FOOTER =
   '<p><span style="color:gray; font-size: 64%;"><em>This is an automated post created with code written by a human.</em></span></p>';
 
+export const FORUM_POST_FOOTER =
+  '[COLOR="gray"][SIZE="1"][I]This is an automated post created with code written by a human.[/I][/SIZE][/COLOR]';
+
 export const getForumWriter = (props: {
   filePath: string;
   header?: string;
@@ -159,6 +162,7 @@ export const processTsbsForForums = async (
         const textWriter = getForumWriter({
           filePath: `${make}-${model}/${tsbYear}.txt`,
           header: `[B][SIZE="5"]${tsbYear}[/SIZE][/B]\n\n`,
+          footer: FORUM_POST_FOOTER,
         });
         if (textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
           writeForumEntry(textWriter, tsb, modelSlice);
@@ -183,6 +187,7 @@ export const processTsbsForForums = async (
     const textWriter = getForumWriter({
       filePath: `${make}/ALL.txt`,
       header: `[B][SIZE="5"]Recent Bulletins[/SIZE][/B]\n\n`,
+      footer: FORUM_POST_FOOTER,
     });
     if (
       textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH &&
@@ -206,6 +211,8 @@ export const processTsbsForForums = async (
     if (tsb.newData) {
       const textWriter = getForumWriter({
         filePath: `${make}/NEW.txt`,
+        header: `[B][SIZE="5"]New ${new Date().toISOString().split('T')[0]}[/SIZE][/B]\n\n`,
+        footer: FORUM_POST_FOOTER,
       });
       if (textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
         writeForumEntry(textWriter, tsb, modelSet);
@@ -228,6 +235,8 @@ export const processTsbsForForums = async (
         if (tsb.newData) {
           const textWriter = getForumWriter({
             filePath: `${make}-${model}/NEW.txt`,
+            header: `[B][SIZE="5"]New ${new Date().toISOString().split('T')[0]}[/SIZE][/B]\n\n`,
+            footer: FORUM_POST_FOOTER,
           });
           if (textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
             writeForumEntry(textWriter, tsb, modelSlice);
@@ -246,6 +255,7 @@ export const processTsbsForForums = async (
         const textWriter = getForumWriter({
           filePath: `${make}-${model}/RECENT.txt`,
           header: `[B][SIZE="5"]Recent Bulletins[/SIZE][/B]\n\n`,
+          footer: FORUM_POST_FOOTER,
         });
         if (
           textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH &&

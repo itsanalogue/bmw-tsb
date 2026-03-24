@@ -23,12 +23,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -37,18 +37,18 @@ jobs:
 
       - name: Restore datastore cache
         id: restore-data-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           key: datastore-${{ runner.os }}
           path: data
 
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v5
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -71,7 +71,7 @@ jobs:
         run: mkdir -p out
 
       - name: Upload out artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: out-files
           path: out/**
@@ -86,7 +86,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Save updated datastore cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           key: datastore-${{ runner.os }}
           path: data
@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload artifact
         if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: 'out/gh-pages'
 

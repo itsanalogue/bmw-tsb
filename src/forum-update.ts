@@ -147,13 +147,13 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32306476',
     forumDomain: 'g45.bimmerpost.com',
-    contentPath: 'BMW-G45/NEW.txt',
+    contentPath: 'BMW-G45/NEW.html',
     reply: true,
   },
   {
     postId: '32306477',
     forumDomain: 'g45.bimmerpost.com',
-    contentPath: 'BMW-G45/RECENT.txt',
+    contentPath: 'BMW-G45/RECENT.html',
   },
   {
     postId: '32306452',
@@ -616,6 +616,18 @@ async function replyToThreadVbulletin({
   return true;
 }
 
+function getBimmerpostUrl(domain: string, path: string) {
+  let forumPath = 'forums';
+
+  switch (domain) {
+    case 'g80.bimmerpost.com':
+      forumPath = 'beta';
+      break;
+  }
+
+  return `https://${domain}/${forumPath}/${path}`;
+}
+
 let bimmerpostAuthCookie: string | undefined = undefined;
 async function getBimmerpostAuthCookie(domain: string) {
   const username = process.env.FORUM_USERNAME;
@@ -629,7 +641,7 @@ async function getBimmerpostAuthCookie(domain: string) {
     return bimmerpostAuthCookie;
   }
 
-  const loginUrl = `https://${domain}/beta/login.php`;
+  const loginUrl = getBimmerpostUrl(domain, 'login.php');
   let anonCsrfCookie: string | undefined = undefined;
 
   const loginPageRes = await fetch(loginUrl, {
@@ -716,8 +728,11 @@ export async function updatePostBimmerpost({
     return false;
   }
 
-  const showUrl = `https://${post.forumDomain}/beta/showthread.php?p=${post.postId}`;
-  const postUrl = `https://${post.forumDomain}/beta/threadpost.php`;
+  const showUrl = getBimmerpostUrl(
+    post.forumDomain,
+    `showthread.php?p=${post.postId}`,
+  );
+  const postUrl = getBimmerpostUrl(post.forumDomain, 'threadpost.php');
 
   const showPageRes = await fetch(showUrl, {
     headers: {
@@ -806,8 +821,11 @@ export async function replyToThreadBimmerpost({
     return false;
   }
 
-  const showUrl = `https://${post.forumDomain}/beta/showthread.php?p=${post.postId}`;
-  const postUrl = `https://${post.forumDomain}/beta/threadpost.php`;
+  const showUrl = getBimmerpostUrl(
+    post.forumDomain,
+    `showthread.php?p=${post.postId}`,
+  );
+  const postUrl = getBimmerpostUrl(post.forumDomain, 'threadpost.php');
 
   const showPageRes = await fetch(showUrl, {
     headers: {

@@ -92,7 +92,7 @@ jobs:
           path: data
       - name: Setup Pages
         if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
         if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
@@ -103,4 +103,4 @@ jobs:
       - name: Deploy to GitHub Pages
         if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

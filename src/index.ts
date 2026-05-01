@@ -65,9 +65,9 @@ async function getTsbStats(tsbs: Tsb[], make: string, models: string[]) {
 export async function processTsbs(make: string, models: string[]) {
   const dataStore = readDatabase();
   const records = await readTsbFiles(dataStore, make);
-  const tsbs = await getTsbs(dataStore, records, models);
   await saveDatabase(dataStore);
 
+  const tsbs = await getTsbs(dataStore, records, models);
   const { unmappedModels } = await getTsbStats(tsbs, make, models);
 
   await processTsbsForForums(tsbs, make, models);
@@ -77,11 +77,11 @@ export async function processTsbs(make: string, models: string[]) {
   try {
     const updateCount = await updateForumPosts(dataStore);
     if (updateCount > 0) {
-      await saveDatabase(dataStore);
       log.info(`Updated or replied to ${updateCount} forum post(s).`);
     } else {
       log.info('No forum updates were necessary.');
     }
+    await saveDatabase(dataStore);
   } catch (error) {
     const errorMsg = `Failed to update forums for ${make} ${models}`;
     log.error(errorMsg, error);

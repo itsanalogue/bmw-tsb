@@ -688,7 +688,7 @@ async function getBimmerpostAuthCookie(domain: string) {
   if (!loginPostRes.ok) {
     throw new Error(`Failed to login. ${loginPageRes.statusText}`);
   }
-  const loginPostResText = await loginPageRes.text();
+  const loginPostResText = await loginPostRes.text();
   try {
     const loginPostJson = JSON.parse(
       loginPostResText,

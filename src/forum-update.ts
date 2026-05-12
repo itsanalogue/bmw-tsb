@@ -220,6 +220,7 @@ const FORUM_POSTS: ForumPost[] = [
     postId: '32306962',
     forumDomain: 'g45.bimmerpost.com',
     contentPath: 'BMW-U11/RECENT.html',
+    forceUpdate: true, //TEST
   },
   {
     postId: '32284224',
@@ -769,7 +770,7 @@ export async function updatePostBimmerpost({
   const csrfToken = csrfTokenMatch[1];
 
   const existingPostMatch = new RegExp(
-    `div\\s+class="post_content"[^>]+postid="${post.postId}"[^>]+>(.+?)<\\/div>`,
+    `<section[^>]*class="[^"]*postbit__content[^"]*"[^>]*data-postid="${post.postId}"[^>]*>([\s\S]*?)<\/section>`,
     'gms',
   ).exec(showPageText);
   if (existingPostMatch) {
@@ -780,6 +781,10 @@ export async function updatePostBimmerpost({
     await fs.promises.writeFile(
       existingPostFilePath,
       `<p>${existingPostText}</p>`,
+    );
+  } else {
+    log.warn(
+      `Unable to load prior content for post ${post.postId} on ${post.forumDomain}!`,
     );
   }
 
@@ -799,7 +804,7 @@ export async function updatePostBimmerpost({
       'User-Agent': USER_AGENT,
       'X-CSRF-Token': csrfToken,
       Cookie: authCookie,
-      Referer: showUrl,
+      Referer: showPageRes.url, //handle the redirect from showUrl
     },
     body: postBody,
   });
@@ -899,7 +904,7 @@ export async function replyToThreadBimmerpost({
       'User-Agent': USER_AGENT,
       'X-CSRF-Token': csrfToken,
       Cookie: authCookie,
-      Referer: showUrl,
+      Referer: showPageRes.url,
     },
     body: postBody,
   });

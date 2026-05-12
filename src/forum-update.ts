@@ -806,13 +806,19 @@ export async function updatePostBimmerpost({
       `Failed to post to ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
     );
   }
-  const postJson = (await updatePageRes.json()) as BimmerpostResponse;
-  if (postJson.appData && postJson.appData[0]?.success === 0) {
+  try {
+    const postJson = (await updatePageRes.json()) as BimmerpostResponse;
+    if (postJson.appData && postJson.appData[0]?.success === 0) {
+      throw new Error(
+        `Failed to post to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+      );
+    }
+    return true;
+  } catch (error) {
     throw new Error(
-      `Failed to post to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+      `Failed to post to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n${await updatePageRes.text()}`,
     );
   }
-  return true;
 }
 
 export async function replyToThreadBimmerpost({
@@ -896,13 +902,19 @@ export async function replyToThreadBimmerpost({
       `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${pageReplyRes.status} ${pageReplyRes.statusText}`,
     );
   }
-  const postJson = (await pageReplyRes.json()) as BimmerpostResponse;
-  if (postJson.appData && postJson.appData[0]?.success === 0) {
+  try {
+    const postJson = (await pageReplyRes.json()) as BimmerpostResponse;
+    if (postJson.appData && postJson.appData[0]?.success === 0) {
+      throw new Error(
+        `Failed to reply to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+      );
+    }
+    return true;
+  } catch (error) {
     throw new Error(
-      `Failed to reply to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+      `Failed to reply to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n${await pageReplyRes.text()}`,
     );
   }
-  return true;
 }
 
 export async function updateForumPosts(dataStore: TsbDataStore) {

@@ -688,12 +688,21 @@ async function getBimmerpostAuthCookie(domain: string) {
   if (!loginPostRes.ok) {
     throw new Error(`Failed to login. ${loginPageRes.statusText}`);
   }
-  const loginPostJson = (await loginPostRes.json()) as BimmerpostLoginResponse;
-  if (
-    loginPostJson.appData?.success === 0 ||
-    loginPostJson.userData?.userid === 0
-  ) {
-    throw new Error(`Failed to login: ${loginPostJson.appData?.errorMsg}`);
+  try {
+    const loginPostJson =
+      (await loginPostRes.json()) as BimmerpostLoginResponse;
+    if (
+      loginPostJson.appData?.success === 0 ||
+      loginPostJson.userData?.userid === 0
+    ) {
+      throw new Error(
+        `Unexpected response from bimmerpost login: ${loginPostJson.appData?.errorMsg}`,
+      );
+    }
+  } catch (error) {
+    throw new Error(
+      `Failed bimmerpost login: ${(error as Error).message}\n${await loginPageRes.text()}`,
+    );
   }
 
   let authCookie = '';

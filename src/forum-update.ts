@@ -688,6 +688,7 @@ async function getBimmerpostAuthCookie(domain: string) {
   if (!loginPostRes.ok) {
     throw new Error(`Failed to login. ${loginPageRes.statusText}`);
   }
+  const loginPostResClone = loginPageRes.clone();
   try {
     const loginPostJson =
       (await loginPostRes.json()) as BimmerpostLoginResponse;
@@ -701,7 +702,7 @@ async function getBimmerpostAuthCookie(domain: string) {
     }
   } catch (error) {
     throw new Error(
-      `Failed bimmerpost login: ${(error as Error).message}\n${await loginPageRes.text()}`,
+      `Failed bimmerpost login: ${(error as Error).message}\n${await loginPostResClone.text()}`,
     );
   }
 
@@ -806,6 +807,7 @@ export async function updatePostBimmerpost({
       `Failed to post to ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
     );
   }
+  const updatePageResClone = updatePageRes.clone();
   try {
     const postJson = (await updatePageRes.json()) as BimmerpostResponse;
     if (postJson.appData && postJson.appData[0]?.success === 0) {
@@ -816,7 +818,7 @@ export async function updatePostBimmerpost({
     return true;
   } catch (error) {
     throw new Error(
-      `Failed to post to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n${await updatePageRes.text()}`,
+      `Failed to post to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n${await updatePageResClone.text()}`,
     );
   }
 }
@@ -902,6 +904,7 @@ export async function replyToThreadBimmerpost({
       `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${pageReplyRes.status} ${pageReplyRes.statusText}`,
     );
   }
+  const pageReplyResClone = pageReplyRes.clone();
   try {
     const postJson = (await pageReplyRes.json()) as BimmerpostResponse;
     if (postJson.appData && postJson.appData[0]?.success === 0) {
@@ -912,7 +915,7 @@ export async function replyToThreadBimmerpost({
     return true;
   } catch (error) {
     throw new Error(
-      `Failed to reply to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n${await pageReplyRes.text()}`,
+      `Failed to reply to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n${await pageReplyResClone.text()}`,
     );
   }
 }

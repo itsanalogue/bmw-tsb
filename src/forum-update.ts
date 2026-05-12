@@ -809,18 +809,22 @@ export async function updatePostBimmerpost({
     );
   }
   const updatePageResText = await updatePageRes.text();
-  try {
-    const postJson = JSON.parse(updatePageResText) as BimmerpostResponse;
-    if (postJson.appData && postJson.appData[0]?.success === 0) {
+  if (updatePageResText.length > 0) {
+    try {
+      const postJson = JSON.parse(updatePageResText) as BimmerpostResponse;
+      if (postJson.appData && postJson.appData[0]?.success === 0) {
+        throw new Error(
+          `Failed to post to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+        );
+      }
+      return true;
+    } catch (error) {
       throw new Error(
-        `Failed to post to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+        `Failed to post to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n\n${updatePageResText}`,
       );
     }
+  } else {
     return true;
-  } catch (error) {
-    throw new Error(
-      `Failed to post to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n\n${updatePageResText}`,
-    );
   }
 }
 

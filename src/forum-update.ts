@@ -66,14 +66,14 @@ const FORUM_POSTS: ForumPost[] = [
   // {
   //   //TEST thread: https://g80.bimmerpost.com/forums/showthread.php?t=2233316
   //   postId: '32677698',
-  //   forumDomain: 'g80.bimmerpost.com',
+  //   forumDomain: 'g45.bimmerpost.com',
   //   contentPath: 'BMW-G80/RECENT.html',
   //   //forceUpdate: true,
   // },
   // {
   //   //TEST thread: https://g80.bimmerpost.com/forums/showthread.php?t=2233316
   //   postId: '32677697',
-  //   forumDomain: 'g80.bimmerpost.com',
+  //   forumDomain: 'g45.bimmerpost.com',
   //   contentPath: 'BMW-G80/NEW.html',
   //   reply: true,
   //   //forceUpdate: true,
@@ -220,7 +220,6 @@ const FORUM_POSTS: ForumPost[] = [
     postId: '32306962',
     forumDomain: 'g45.bimmerpost.com',
     contentPath: 'BMW-U11/RECENT.html',
-    forceUpdate: true, //TEST
   },
   {
     postId: '32284224',
@@ -770,7 +769,7 @@ export async function updatePostBimmerpost({
   const csrfToken = csrfTokenMatch[1];
 
   const existingPostMatch = new RegExp(
-    `<section[^>]*class="[^"]*postbit__content[^"]*"[^>]*data-postid="${post.postId}"[^>]*>([\s\S]*?)<\/section>`,
+    `<section[^>]*class="[^"]*postbit__content[^"]*"[^>]*data-postid="${post.postId}"[^>]*>([\\s\\S]*?)<\\/section>`,
     'gms',
   ).exec(showPageText);
   if (existingPostMatch) {
@@ -780,12 +779,16 @@ export async function updatePostBimmerpost({
     );
     await fs.promises.writeFile(
       existingPostFilePath,
-      `<p>${existingPostText}</p>`,
+      `<p>${existingPostText.trim()}</p>`,
     );
   } else {
     log.warn(
       `Unable to load prior content for post ${post.postId} on ${post.forumDomain}!`,
     );
+    const existingPageFilePath = getOutputPath(
+      post.contentPath.replace('.html', '.page.html'),
+    );
+    await fs.promises.writeFile(existingPageFilePath, `<p>${showPageText}</p>`);
   }
 
   const encodedContent = generateJSON(content, TIP_TAP_EXTENSIONS);
@@ -956,7 +959,7 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
           let updated = false;
           if (post.reply) {
             const timeSincePost = new Date().getTime() - lastPostTs;
-            if (timeSincePost < 21000) {
+            if (timeSincePost < 21000 && !process.env.UPDATE_HASHES) {
               //forum restricts 1 post per 20 seconds.
               await new Promise((res) =>
                 global.setTimeout(res, 21000 - timeSincePost),
@@ -991,6 +994,12 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
               `${post.reply ? 'Replied to' : 'Updated'} forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
             );
             updateCount++;
+            // eslint-disable-next-line require-atomic-updates
+            dataStore.forumPostHashes[post.contentPath] = contentHash;
+          } else if (process.env.UPDATE_HASHES) {
+            log.info(
+              `Updated hash for ${post.reply ? 'reply to' : 'update of'} forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
+            );
             // eslint-disable-next-line require-atomic-updates
             dataStore.forumPostHashes[post.contentPath] = contentHash;
           }

@@ -1,5 +1,4 @@
 import fs from 'fs';
-import { decode } from 'html-entities';
 import log from './log.js';
 import { saveDatabase, type TsbDataStore } from './database.js';
 import * as crypto from 'crypto';
@@ -32,7 +31,7 @@ export const FORUM_POST_MAX_LENGTH = 100000; //buffer for actual limit of 105000
 
 interface ForumPost {
   postId: string;
-  forumDomain: string;
+  postUrl: string;
   contentPath: string;
   reply?: boolean;
   forceUpdate?: boolean;
@@ -61,185 +60,213 @@ interface BimmerpostLoginResponse {
 }
 
 const USER_AGENT = 'itsanalogue-bmw-tsb-updates';
-const VBULLETIN_VERSION = '3.8.11';
 const FORUM_POSTS: ForumPost[] = [
   // {
-  //   //TEST thread: https://g80.bimmerpost.com/forums/showthread.php?t=2233316
   //   postId: '32677698',
-  //   forumDomain: 'g45.bimmerpost.com',
+  //   postUrl: 'https://g80.bimmerpost.com/beta/showthread/2233316/test-service-bulletin-updates?p=32677698',
   //   contentPath: 'BMW-G80/RECENT.html',
   //   //forceUpdate: true,
   // },
   // {
-  //   //TEST thread: https://g80.bimmerpost.com/forums/showthread.php?t=2233316
   //   postId: '32677697',
-  //   forumDomain: 'g45.bimmerpost.com',
+  //   postUrl: 'https://g80.bimmerpost.com/beta/showthread/2233316/test-service-bulletin-updates?p=32677697',
   //   contentPath: 'BMW-G80/NEW.html',
   //   reply: true,
   //   //forceUpdate: true,
   // },
   {
     postId: '32308235',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202957/bmw-service-bulletin-lists-check-for-your-model?p=32308235',
     contentPath: 'BMW/NEW.html',
     reply: true,
   },
   {
     postId: '32308237',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202957/bmw-service-bulletin-lists-check-for-your-model?p=32308237',
     contentPath: 'BMW/ALL.html',
   },
   {
     postId: '32306435',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g05.bimmerpost.com/beta/showthread/2202786/bmw-x5-service-bulletin-list?p=32306435',
     contentPath: 'BMW-G05/NEW.html',
     reply: true,
   },
   {
     postId: '32306436',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g05.bimmerpost.com/beta/showthread/2202786/bmw-x5-service-bulletin-list?p=32306436',
     contentPath: 'BMW-G05/RECENT.html',
   },
   {
     postId: '32306413',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202784/bmw-x7-service-bulletin-list?p=32306413',
     contentPath: 'BMW-G07/NEW.html',
     reply: true,
   },
   {
     postId: '32306416',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202784/bmw-x7-service-bulletin-list?p=32306416',
     contentPath: 'BMW-G07/RECENT.html',
   },
   {
     postId: '32307083',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202837/bmw-g20-g22-service-bulletin-list?p=32307083',
     contentPath: 'BMW-G20/NEW.html',
     reply: true,
   },
   {
     postId: '32307084',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202837/bmw-g20-g22-service-bulletin-list?p=32307084',
     contentPath: 'BMW-G20/RECENT.html',
   },
   {
     postId: '32306388',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202782/bmw-i4-service-bulletin-list?p=32306388',
     contentPath: 'BMW-G26/NEW.html',
     reply: true,
   },
   {
     postId: '32306389',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202782/bmw-i4-service-bulletin-list?p=32306389',
     contentPath: 'BMW-G26/RECENT.html',
   },
   {
     postId: '32307803',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202927/bmw-g42-service-bulletin-list?p=32307803',
     contentPath: 'BMW-G42/NEW.html',
     reply: true,
   },
   {
     postId: '32307804',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202927/bmw-g42-service-bulletin-list?p=32307804',
     contentPath: 'BMW-G42/RECENT.html',
   },
   {
     postId: '32306476',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202789/bmw-x3-service-bulletin-list?p=32306476',
     contentPath: 'BMW-G45/NEW.html',
     reply: true,
   },
   {
     postId: '32306477',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202789/bmw-x3-service-bulletin-list?p=32306477',
     contentPath: 'BMW-G45/RECENT.html',
   },
   {
     postId: '32306452',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202787/bmw-g60-service-bulletin-list?p=32306452',
     contentPath: 'BMW-G60/NEW.html',
     reply: true,
   },
   {
     postId: '32306455',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202787/bmw-g60-service-bulletin-list?p=32306455',
     contentPath: 'BMW-G60/RECENT.html',
   },
   {
     postId: '32307091',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202838/bmw-g70-service-bulletin-list?p=32307091',
     contentPath: 'BMW-G70/NEW.html',
     reply: true,
   },
   {
     postId: '32307092',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202838/bmw-g70-service-bulletin-list?p=32307092',
     contentPath: 'BMW-G70/RECENT.html',
   },
   {
     postId: '32307780',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202838/bmw-g70-service-bulletin-list?p=32307780',
     contentPath: 'BMW-G80/NEW.html',
     reply: true,
   },
   {
     postId: '32307783',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g80.bimmerpost.com/beta/showthread/2202924/bmw-m3-m4-service-bulletin-list?p=32307783',
     contentPath: 'BMW-G80/RECENT.html',
+    forceUpdate: true,
   },
   {
     postId: '32307797',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202925/bmw-m2-service-bulletin-list?p=32307797',
     contentPath: 'BMW-G87/NEW.html',
     reply: true,
   },
   {
     postId: '32307799',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202925/bmw-m2-service-bulletin-list?p=32307799',
     contentPath: 'BMW-G87/RECENT.html',
   },
   {
     postId: '32307775',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202923/bmw-m5-service-bulletin-list?p=32307775',
     contentPath: 'BMW-G90/NEW.html',
     reply: true,
   },
   {
     postId: '32307778',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2202923/bmw-m5-service-bulletin-list?p=32307778',
     contentPath: 'BMW-G90/RECENT.html',
   },
   {
     postId: '32306961',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://u11.bimmerpost.com/forums/showthread/2202826/bmw-x1-x2-service-bulletin-list?p=32306961',
     contentPath: 'BMW-U11/NEW.html',
     reply: true,
   },
   {
     postId: '32306962',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://u11.bimmerpost.com/forums/showthread/2202826/bmw-x1-x2-service-bulletin-list?p=32306962',
     contentPath: 'BMW-U11/RECENT.html',
   },
   {
     postId: '32284224',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284224',
     contentPath: 'BMW-I20/NEW.html',
     reply: true,
   },
   {
     postId: '32284226',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284226',
     contentPath: 'BMW-I20/RECENT.html',
   },
   {
     postId: '32284235',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284235',
     contentPath: 'BMW-I20/2026.html',
   },
   {
     postId: '32284236',
-    forumDomain: 'g45.bimmerpost.com',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284236',
     contentPath: 'BMW-I20/2027.html',
   },
 ];
@@ -293,343 +320,8 @@ export const getModelNamesForForum = (forumCode: string) => {
   return [...modelNames].sort();
 };
 
-export const encodeContentForVbulletin = (s: string, charset: string) => {
-  switch (charset) {
-    // effectively converting to Windows-1252, because vBulletin.
-    case 'iso-8859-1':
-      let out = '';
-      for (let i = 0; i < s.length; i++) {
-        const ch = s.charAt(i);
-        const code = s.charCodeAt(i);
-
-        if (code >= 0xa0 && code <= 0xff) {
-          out += `%${code.toString(16).toUpperCase()}`;
-          continue;
-        }
-
-        switch (code) {
-          case 0x20ac:
-            out += '%80';
-            break;
-          case 0x201a:
-            out += '%82';
-            break;
-          case 0x192:
-            out += '%83';
-            break;
-          case 0x201e:
-            out += '%84';
-            break;
-          case 0x2026:
-            out += '%85';
-            break;
-          case 0x2020:
-            out += '%86';
-            break;
-          case 0x2021:
-            out += '%87';
-            break;
-          case 0x2c6:
-            out += '%88';
-            break;
-          case 0x2030:
-            out += '%89';
-            break;
-          case 0x160:
-            out += '%8A';
-            break;
-          case 0x2039:
-            out += '%8B';
-            break;
-          case 0x152:
-            out += '%8C';
-            break;
-          case 0x17d:
-            out += '%8E';
-            break;
-          case 0x2018:
-            out += '%91';
-            break;
-          case 0x2019:
-            out += '%92';
-            break;
-          case 0x201c:
-            out += '%93';
-            break;
-          case 0x201d:
-            out += '%94';
-            break;
-          case 0x2022:
-            out += '%95';
-            break;
-          case 0x2013:
-            out += '%96';
-            break;
-          case 0x2014:
-            out += '%97';
-            break;
-          case 0x2dc:
-            out += '%98';
-            break;
-          case 0x2122:
-            out += '%99';
-            break;
-          case 0x161:
-            out += '%9A';
-            break;
-          case 0x203a:
-            out += '%9B';
-            break;
-          case 0x153:
-            out += '%9C';
-            break;
-          case 0x17e:
-            out += '%9E';
-            break;
-          case 0x178:
-            out += '%9F';
-            break;
-          case 0x28:
-          case 0x29:
-            out += `%${code.toString(16)}`;
-            break;
-          case 0x0a:
-            out += '%0D';
-            out += encodeURIComponent(ch);
-            break;
-          default:
-            out += encodeURIComponent(ch);
-            break;
-        }
-      }
-      return out.replace(/%20/g, '+');
-
-    case 'utf-8':
-    case 'default':
-      const encoded = encodeURIComponent(s);
-      return encoded.replace(/%20/g, '+');
-  }
-};
-
-function getVbulletinCookies() {
-  const bbpassword = process.env.BBPASSWORD;
-  const bbuserid = process.env.BBUSERID;
-
-  if (!bbuserid || !bbpassword) {
-    return undefined;
-  }
-  return `bbuserid=${bbuserid}; bbpassword=${bbpassword}`;
-}
-
-async function updatePostVbulletin({
-  content,
-  post,
-}: {
-  content: string;
-  post: ForumPost;
-}) {
-  const showUrl = `https://${post.forumDomain}/forums/showpost.php?p=${post.postId}`;
-  const editUrl = `https://${post.forumDomain}/forums/editpost.php?do=editpost&p=${post.postId}`;
-  const updateUrl = `https://${post.forumDomain}/forums/editpost.php?do=updatepost&p=${post.postId}`;
-
-  const authCookie = getVbulletinCookies();
-  if (!authCookie) {
-    log.info(
-      `No credentials, skipping update of post ${post.postId} on ${post.forumDomain}`,
-    );
-    return false;
-  }
-
-  const editPageRes = await fetch(editUrl, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      Cookie: authCookie,
-      Referer: showUrl,
-    },
-  });
-  if (!editPageRes.ok) {
-    throw new Error(
-      `Failed to load edit page for post ${post.postId} on ${post.forumDomain}: ${editPageRes.status} ${editPageRes.statusText}`,
-    );
-  }
-
-  let pageCharset = '';
-  const charsetMatch = /charset=([^;\s]+)/.exec(
-    editPageRes.headers.get('Content-Type') ?? '',
-  );
-  if (charsetMatch) {
-    pageCharset = charsetMatch[1].toLowerCase();
-  }
-
-  let editPageText = '';
-  switch (pageCharset) {
-    case 'iso-8859-1':
-      //vBulletin is incorrectly presenting Windows-1252 as ISO-8859-1
-      //AND TextDecoder incorrectly decodes Windows-1252 as ISO-8859-1
-      //Decode as Windows-1252 and set stream:true to avoid the TextDecoder bug.
-      //https://github.com/nodejs/node/issues/56542
-      const textDecoder = new TextDecoder('windows-1252');
-      const textBuffer = await editPageRes.arrayBuffer();
-      editPageText = textDecoder.decode(textBuffer, { stream: true });
-      break;
-    case 'utf-8':
-    default:
-      editPageText = await editPageRes.text();
-      break;
-  }
-
-  const vbVersion = /vBulletin ([\d\.]+)/.exec(editPageText);
-  if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {
-    throw new Error(
-      `Unexpected vBulletin version (${vbVersion?.[1]}).  Will not attempt forum updates.`,
-    );
-  }
-
-  const csrfTokenMatch = /var\sSECURITYTOKEN\s=\s"([^"]+)";/.exec(editPageText);
-  if (!csrfTokenMatch) {
-    throw new Error(
-      `Failed to read CSRF token from page var for ${post.postId} on ${post.forumDomain}`,
-    );
-  }
-  const csrfToken = csrfTokenMatch[1];
-
-  const existingPostMatch =
-    /<textarea name="message" id="vB_Editor_001_textarea".+>([^<]+)<\/textarea>/.exec(
-      editPageText,
-    );
-  if (existingPostMatch) {
-    const existingPostText = existingPostMatch[1];
-    const existingPostFilePath = getOutputPath(
-      post.contentPath.replace('.txt', '.prior.txt'),
-    );
-    await fs.promises.writeFile(existingPostFilePath, decode(existingPostText));
-  }
-
-  const encodedContent = encodeContentForVbulletin(content, pageCharset);
-
-  const postBody = `reason=&title=&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=updatepost&p=${post.postId}&sbutton=Save+Changes&parseurl=1&emailupdate=1`;
-
-  const updatePageRes = await fetch(updateUrl, {
-    method: 'POST',
-    headers: {
-      'User-Agent': USER_AGENT,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: authCookie,
-      Referer: editUrl,
-    },
-    body: postBody,
-  });
-  if (!updatePageRes.ok) {
-    throw new Error(
-      `Failed to post to ${post.postId} on ${post.forumDomain}: ${editPageRes.status} ${editPageRes.statusText}`,
-    );
-  }
-  return true;
-}
-
-async function replyToThreadVbulletin({
-  content,
-  post,
-}: {
-  content: string;
-  post: ForumPost;
-}) {
-  const showUrl = `https://${post.forumDomain}/forums/showpost.php?p=${post.postId}`;
-  const startReplyUrl = `https://${post.forumDomain}/forums/newreply.php?do=newreply&p=${post.postId}&noquote=1`;
-
-  const authCookie = getVbulletinCookies();
-  if (!authCookie) {
-    log.info(
-      `No credentials, skipping reply to post ${post.postId} on ${post.forumDomain}`,
-    );
-    return false;
-  }
-
-  const startReplyRes = await fetch(startReplyUrl, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      Cookie: authCookie,
-      Referer: showUrl,
-    },
-  });
-  if (!startReplyRes.ok) {
-    throw new Error(
-      `Failed to load new reply for post ${post.postId} on ${post.forumDomain}: ${startReplyRes.status} ${startReplyRes.statusText}`,
-    );
-  }
-  const newReplyPageText = await startReplyRes.text();
-
-  let pageCharset = '';
-  const charsetMatch = /charset=([^;\s]+)/.exec(
-    startReplyRes.headers.get('Content-Type') ?? '',
-  );
-  if (charsetMatch) {
-    pageCharset = charsetMatch[1].toLowerCase();
-  }
-
-  const vbVersion = /vBulletin ([\d\.]+)/.exec(newReplyPageText);
-  if (!vbVersion || vbVersion[1] !== VBULLETIN_VERSION) {
-    throw new Error(
-      `Unexpected vBulletin version (${vbVersion?.[1]}).  Will not attempt forum reply.`,
-    );
-  }
-
-  const csrfTokenMatch = /var\sSECURITYTOKEN\s=\s"([^"]+)";/.exec(
-    newReplyPageText,
-  );
-  if (!csrfTokenMatch) {
-    throw new Error(
-      `Failed to read CSRF token from page var for ${post.postId} on ${post.forumDomain}`,
-    );
-  }
-  const csrfToken = csrfTokenMatch[1];
-
-  const threadMatch = /name="t"\svalue="([^"]+)"/.exec(newReplyPageText);
-  if (!threadMatch) {
-    throw new Error(
-      `Failed to read thread ID for ${post.postId} on ${post.forumDomain}`,
-    );
-  }
-  const threadId = threadMatch[1];
-  const postReplyUrl = `https://${post.forumDomain}/forums/newreply.php?do=postreply&t=${threadId}`;
-
-  const encodedContent = encodeContentForVbulletin(content, pageCharset);
-
-  const postBody = `title=&message=${encodedContent}&wysiwyg=0&iconid=0&s=&securitytoken=${csrfToken}&do=postreply&t=${threadId}&p=${post.postId}&loggedinuser=${process.env.BBUSERID}&multiquoteempty=&sbutton=Submit+Reply&parseurl=1&emailupdate=1&rating=0`;
-
-  const postReplyPageRes = await fetch(postReplyUrl, {
-    method: 'POST',
-    headers: {
-      'User-Agent': USER_AGENT,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: authCookie,
-      Referer: startReplyUrl,
-    },
-    body: postBody,
-  });
-
-  if (!(postReplyPageRes.ok || postReplyPageRes.status === 302)) {
-    throw new Error(
-      `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${postReplyPageRes.status} ${postReplyPageRes.statusText}`,
-    );
-  }
-  return true;
-}
-
-function getBimmerpostUrl(domain: string, path: string) {
-  let forumPath = 'forums';
-
-  switch (domain) {
-    case 'g80.bimmerpost.com':
-      forumPath = 'beta';
-      break;
-  }
-
-  return `https://${domain}/${forumPath}/${path}`;
-}
-
 let bimmerpostAuthCookie: string | undefined = undefined;
-async function getBimmerpostAuthCookie(domain: string) {
+async function getBimmerpostAuthCookie() {
   const username = process.env.FORUM_USERNAME;
   const password = process.env.FORUM_PASSWORD;
 
@@ -641,7 +333,7 @@ async function getBimmerpostAuthCookie(domain: string) {
     return bimmerpostAuthCookie;
   }
 
-  const loginUrl = getBimmerpostUrl(domain, 'login.php');
+  const loginUrl = 'https://g45.bimmerpost.com/forums/login.php';
   let anonCsrfCookie: string | undefined = undefined;
 
   const loginPageRes = await fetch(loginUrl, {
@@ -724,6 +416,11 @@ async function getBimmerpostAuthCookie(domain: string) {
   return bimmerpostAuthCookie;
 }
 
+function getPostUrl(pageUrl: string) {
+  const urlParts = pageUrl.split('/').slice(0, 4);
+  return `${urlParts.join('/')}/threadpost.php`;
+}
+
 export async function updatePostBimmerpost({
   content,
   post,
@@ -731,21 +428,13 @@ export async function updatePostBimmerpost({
   content: string;
   post: ForumPost;
 }) {
-  const authCookie = await getBimmerpostAuthCookie(post.forumDomain);
+  const authCookie = await getBimmerpostAuthCookie();
   if (!authCookie) {
-    log.info(
-      `No credentials, skipping update of post ${post.postId} on ${post.forumDomain}`,
-    );
+    log.info(`No credentials, skipping update of post ${post.postUrl}`);
     return false;
   }
 
-  const showUrl = getBimmerpostUrl(
-    post.forumDomain,
-    `showthread.php?p=${post.postId}`,
-  );
-  const postUrl = getBimmerpostUrl(post.forumDomain, 'threadpost.php');
-
-  const showPageRes = await fetch(showUrl, {
+  const showPageRes = await fetch(post.postUrl, {
     headers: {
       'User-Agent': USER_AGENT,
       Cookie: authCookie,
@@ -753,7 +442,7 @@ export async function updatePostBimmerpost({
   });
   if (!showPageRes.ok) {
     throw new Error(
-      `Failed to load edit page for post ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
+      `Failed to load edit page for post at ${post.postUrl}: ${showPageRes.status} ${showPageRes.statusText}`,
     );
   }
 
@@ -763,7 +452,7 @@ export async function updatePostBimmerpost({
   );
   if (!csrfTokenMatch) {
     throw new Error(
-      `Failed to read CSRF token from page meta tag for post ${post.postId} on ${post.forumDomain}`,
+      `Failed to read CSRF token from page meta tag for post at ${post.postUrl}`,
     );
   }
   const csrfToken = csrfTokenMatch[1];
@@ -782,9 +471,7 @@ export async function updatePostBimmerpost({
       `<p>${existingPostText.trim()}</p>`,
     );
   } else {
-    log.warn(
-      `Unable to load prior content for post ${post.postId} on ${post.forumDomain}!`,
-    );
+    log.warn(`Unable to load prior content for post at ${post.postUrl}`);
     const existingPageFilePath = getOutputPath(
       post.contentPath.replace('.html', '.page.html'),
     );
@@ -801,19 +488,21 @@ export async function updatePostBimmerpost({
   postBody.append('message_json', JSON.stringify(encodedContent));
   postBody.append('type', 0);
 
+  const postUrl = getPostUrl(showPageRes.url);
+
   const updatePageRes = await fetch(postUrl, {
     method: 'POST',
     headers: {
       'User-Agent': USER_AGENT,
       'X-CSRF-Token': csrfToken,
       Cookie: authCookie,
-      Referer: showPageRes.url, //handle the redirect from showUrl
+      Referer: showPageRes.url,
     },
     body: postBody,
   });
   if (!updatePageRes.ok) {
     throw new Error(
-      `Failed to post to ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
+      `Failed to post to ${post.postId} at ${postUrl} : ${showPageRes.status} ${showPageRes.statusText}`,
     );
   }
   const updatePageResText = await updatePageRes.text();
@@ -822,13 +511,13 @@ export async function updatePostBimmerpost({
       const postJson = JSON.parse(updatePageResText) as BimmerpostResponse;
       if (postJson.appData && postJson.appData[0]?.success === 0) {
         throw new Error(
-          `Failed to post to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+          `Failed to post to ${post.postId} at ${postUrl}: ${postJson.appData[0].message}`,
         );
       }
       return true;
     } catch (error) {
       throw new Error(
-        `Failed to post to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n\n${updatePageResText}`,
+        `Failed to post to ${post.postId} at ${postUrl}: ${(error as Error).message}\n\n${updatePageResText}`,
       );
     }
   } else {
@@ -843,21 +532,13 @@ export async function replyToThreadBimmerpost({
   content: string;
   post: ForumPost;
 }) {
-  const authCookie = await getBimmerpostAuthCookie(post.forumDomain);
+  const authCookie = await getBimmerpostAuthCookie();
   if (!authCookie) {
-    log.info(
-      `No credentials, skipping reply to post ${post.postId} on ${post.forumDomain}`,
-    );
+    log.info(`No credentials, skipping reply to post ${post.postUrl}`);
     return false;
   }
 
-  const showUrl = getBimmerpostUrl(
-    post.forumDomain,
-    `showthread.php?p=${post.postId}`,
-  );
-  const postUrl = getBimmerpostUrl(post.forumDomain, 'threadpost.php');
-
-  const showPageRes = await fetch(showUrl, {
+  const showPageRes = await fetch(post.postUrl, {
     headers: {
       'User-Agent': USER_AGENT,
       Cookie: authCookie,
@@ -865,7 +546,7 @@ export async function replyToThreadBimmerpost({
   });
   if (!showPageRes.ok) {
     throw new Error(
-      `Failed to load edit page for post ${post.postId} on ${post.forumDomain}: ${showPageRes.status} ${showPageRes.statusText}`,
+      `Failed to load page for post at ${post.postUrl}: ${showPageRes.status} ${showPageRes.statusText}`,
     );
   }
 
@@ -875,7 +556,7 @@ export async function replyToThreadBimmerpost({
   );
   if (!csrfTokenMatch) {
     throw new Error(
-      `Failed to read CSRF token from page meta tag for ${post.postId} on ${post.forumDomain}`,
+      `Failed to read CSRF token from page meta tag at ${post.postUrl}`,
     );
   }
   const csrfToken = csrfTokenMatch[1];
@@ -885,9 +566,7 @@ export async function replyToThreadBimmerpost({
       showPageText,
     );
   if (!threadMatch) {
-    throw new Error(
-      `Failed to read thread ID for ${post.postId} on ${post.forumDomain}`,
-    );
+    throw new Error(`Failed to read thread ID for ${post.postUrl}`);
   }
   const threadId = threadMatch[1];
 
@@ -900,6 +579,8 @@ export async function replyToThreadBimmerpost({
   postBody.append('thetitle', '');
   postBody.append('message_json', JSON.stringify(encodedContent));
   postBody.append('type', 0);
+
+  const postUrl = getPostUrl(showPageRes.url);
 
   const pageReplyRes = await fetch(postUrl, {
     method: 'POST',
@@ -914,7 +595,7 @@ export async function replyToThreadBimmerpost({
 
   if (!(pageReplyRes.ok || pageReplyRes.status === 302)) {
     throw new Error(
-      `Failed to reply to thread ${threadId} on ${post.forumDomain}: ${pageReplyRes.status} ${pageReplyRes.statusText}`,
+      `Failed to reply to thread ${threadId} at ${postUrl}: ${pageReplyRes.status} ${pageReplyRes.statusText}`,
     );
   }
   const pageReplyResText = await pageReplyRes.text();
@@ -922,13 +603,13 @@ export async function replyToThreadBimmerpost({
     const postJson = JSON.parse(pageReplyResText) as BimmerpostResponse;
     if (postJson.appData && postJson.appData[0]?.success === 0) {
       throw new Error(
-        `Failed to reply to ${post.postId} on ${post.forumDomain}: ${postJson.appData[0].message}`,
+        `Failed to reply to thread ${threadId} at ${postUrl}: ${postJson.appData[0].message}`,
       );
     }
     return true;
   } catch (error) {
     throw new Error(
-      `Failed to reply to ${post.postId} on ${post.forumDomain}: ${(error as Error).message}\n\n${pageReplyResText}`,
+      `Failed to reply to thread ${threadId} at ${postUrl}: ${(error as Error).message}\n\n${pageReplyResText}`,
     );
   }
 }
@@ -940,7 +621,6 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
 
   for (const post of FORUM_POSTS) {
     const contentFilePath = getOutputPath(post.contentPath);
-    const contentFileType = post.contentPath.split('.')[1];
 
     if (fs.existsSync(contentFilePath)) {
       const content = fs.readFileSync(contentFilePath, 'utf-8');
@@ -966,39 +646,27 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
               );
             }
 
-            updated =
-              contentFileType === 'html'
-                ? await replyToThreadBimmerpost({
-                    content,
-                    post,
-                  })
-                : await replyToThreadVbulletin({
-                    content,
-                    post,
-                  });
+            updated = await replyToThreadBimmerpost({
+              content,
+              post,
+            });
             lastPostTs = new Date().getTime();
           } else {
-            updated =
-              contentFileType === 'html'
-                ? await updatePostBimmerpost({
-                    content,
-                    post,
-                  })
-                : await updatePostVbulletin({
-                    content,
-                    post,
-                  });
+            updated = await updatePostBimmerpost({
+              content,
+              post,
+            });
           }
           if (updated) {
             log.info(
-              `${post.reply ? 'Replied to' : 'Updated'} forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
+              `${post.reply ? 'Replied to' : 'Updated'} forum post ${post.postUrl} with ${post.contentPath}`,
             );
             updateCount++;
             // eslint-disable-next-line require-atomic-updates
             dataStore.forumPostHashes[post.contentPath] = contentHash;
           } else if (process.env.UPDATE_HASHES) {
             log.info(
-              `Updated hash for ${post.reply ? 'reply to' : 'update of'} forum post ${post.postId} on ${post.forumDomain} with ${post.contentPath}`,
+              `Updated hash for ${post.reply ? 'reply to' : 'update of'} forum post ${post.postUrl} with ${post.contentPath}`,
             );
             // eslint-disable-next-line require-atomic-updates
             dataStore.forumPostHashes[post.contentPath] = contentHash;

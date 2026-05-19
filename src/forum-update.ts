@@ -203,7 +203,6 @@ const FORUM_POSTS: ForumPost[] = [
     postUrl:
       'https://g80.bimmerpost.com/beta/showthread/2202924/bmw-m3-m4-service-bulletin-list?p=32307783',
     contentPath: 'BMW-G80/RECENT.html',
-    forceUpdate: true,
   },
   {
     postId: '32307797',

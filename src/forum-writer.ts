@@ -22,9 +22,6 @@ const forumWriters = new Map<string, ReturnType<typeof createOutputWriter>>();
 export const FORUM_POST_HTML_FOOTER =
   '<p><span style="color:gray; font-size: 64%;"><em>This is an automated post created with code written by a human.</em></span></p>';
 
-export const FORUM_POST_FOOTER =
-  '[COLOR="gray"][SIZE="1"][I]This is an automated post created with code written by a human.[/I][/SIZE][/COLOR]';
-
 export const getForumWriter = (props: {
   filePath: string;
   header?: string;
@@ -42,47 +39,6 @@ export const getForumWriter = (props: {
     forumWriters.set(filePath, writer);
   }
   return writer;
-};
-
-export const writeForumEntry = (
-  writer: ReturnType<typeof createOutputWriter>,
-  tsb: Tsb,
-  modelSlice: Set<string>,
-) => {
-  writer.addEntry();
-  writer.writeLine(
-    `[URL="https://www.nhtsa.gov/?nhtsaId=${tsb.nhtsaID}"][B]${tsb.tsbID ? sibIdDisplay(tsb.tsbID) : recallIdDisplay(tsb.nhtsaID)}[/B][/URL] (${dateShortDisplay(tsb.displayDate)})`,
-  );
-
-  const recallInfo = recallDetails(tsb);
-  if (recallInfo.length > 0) {
-    writer.writeLine(`[B]${recallInfo}[/B]`);
-  }
-
-  let otherModels = 0;
-
-  for (const tsbModel of tsb.models.sort(tsbModelSort)) {
-    if (!isForumMatch([tsbModel], modelSlice)) {
-      otherModels++;
-      continue;
-    }
-    writer.writeLine(
-      `${tsb.make} ${tsbModel.model} ${[...tsbModel.years].sort()}`,
-    );
-  }
-
-  if (otherModels > 0) {
-    writer.writeLine(
-      `(plus ${otherModels} other model${otherModels === 1 ? '' : 's'})`,
-    );
-  }
-
-  writer.writeLine(tsb.component.replace(/\:/g, ': '));
-  writer.writeLine(`${tsb.summary}`);
-  for (const att of tsb.files) {
-    writer.writeLine(`[URL="${att.url}"]${att.fileName}[/URL]`);
-  }
-  writer.writeLine(' ');
 };
 
 export const writeForumHtmlEntry = (
@@ -159,15 +115,6 @@ export const processTsbsForForums = async (
     for (const model of models) {
       const modelSlice = new Set([model]);
       if (isForumMatch(tsb.models, modelSlice)) {
-        const textWriter = getForumWriter({
-          filePath: `${make}-${model}/${tsbYear}.txt`,
-          header: `[B][SIZE="5"]${tsbYear}[/SIZE][/B]\n\n`,
-          footer: FORUM_POST_FOOTER,
-        });
-        if (textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
-          writeForumEntry(textWriter, tsb, modelSlice);
-        }
-
         const htmlWriter = getForumWriter({
           filePath: `${make}-${model}/${tsbYear}.html`,
           header: `<p><span style="font-size: 150%"><strong>${tsbYear}</strong></span><br /><br />`,
@@ -184,18 +131,6 @@ export const processTsbsForForums = async (
   for (const tsb of tsbs
     .filter((t) => isForumMatch(t.models, allConfiguredModels))
     .sort(tsbDateSortDesc)) {
-    const textWriter = getForumWriter({
-      filePath: `${make}/ALL.txt`,
-      header: `[B][SIZE="5"]Recent Bulletins[/SIZE][/B]\n\n`,
-      footer: FORUM_POST_FOOTER,
-    });
-    if (
-      textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH &&
-      textWriter.entriesWritten() < 500
-    ) {
-      writeForumEntry(textWriter, tsb, modelSet);
-    }
-
     const htmlWriter = getForumWriter({
       filePath: `${make}/ALL.html`,
       header: `<p><span style="font-size: 150%"><strong>Recent Bulletins</strong></span><br /><br />`,
@@ -209,15 +144,6 @@ export const processTsbsForForums = async (
     }
 
     if (tsb.newData) {
-      const textWriter = getForumWriter({
-        filePath: `${make}/NEW.txt`,
-        header: `[B][SIZE="5"]New ${new Date().toISOString().split('T')[0]}[/SIZE][/B]\n\n`,
-        footer: FORUM_POST_FOOTER,
-      });
-      if (textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
-        writeForumEntry(textWriter, tsb, modelSet);
-      }
-
       const htmlWriter = getForumWriter({
         filePath: `${make}/NEW.html`,
         header: `<p><span style="font-size: 150%"><strong>New ${new Date().toISOString().split('T')[0]}</strong></span><br /><br />`,
@@ -233,15 +159,6 @@ export const processTsbsForForums = async (
 
       if (isForumMatch(tsb.models, modelSlice)) {
         if (tsb.newData) {
-          const textWriter = getForumWriter({
-            filePath: `${make}-${model}/NEW.txt`,
-            header: `[B][SIZE="5"]New ${new Date().toISOString().split('T')[0]}[/SIZE][/B]\n\n`,
-            footer: FORUM_POST_FOOTER,
-          });
-          if (textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
-            writeForumEntry(textWriter, tsb, modelSlice);
-          }
-
           const htmlWriter = getForumWriter({
             filePath: `${make}-${model}/NEW.html`,
             header: `<p><span style="font-size: 150%"><strong>New ${new Date().toISOString().split('T')[0]}</strong></span><br /><br />`,
@@ -250,18 +167,6 @@ export const processTsbsForForums = async (
           if (htmlWriter.lengthWritten() < FORUM_POST_MAX_LENGTH) {
             writeForumHtmlEntry(htmlWriter, tsb, modelSlice);
           }
-        }
-
-        const textWriter = getForumWriter({
-          filePath: `${make}-${model}/RECENT.txt`,
-          header: `[B][SIZE="5"]Recent Bulletins[/SIZE][/B]\n\n`,
-          footer: FORUM_POST_FOOTER,
-        });
-        if (
-          textWriter.lengthWritten() < FORUM_POST_MAX_LENGTH &&
-          textWriter.entriesWritten() < 100
-        ) {
-          writeForumEntry(textWriter, tsb, modelSlice);
         }
 
         const htmlWriter = getForumWriter({

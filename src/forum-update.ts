@@ -445,6 +445,10 @@ export async function updatePostBimmerpost({
     );
   }
 
+  if (showPageRes.url !== post.postUrl) {
+    log.warn(`Redirected from ${post.postUrl} to ${showPageRes.url}`);
+  }
+
   const showPageText = await showPageRes.text();
   const csrfTokenMatch = /<meta\sname="csrf-token"\scontent="([^"]+)">/.exec(
     showPageText,
@@ -547,6 +551,10 @@ export async function replyToThreadBimmerpost({
     throw new Error(
       `Failed to load page for post at ${post.postUrl}: ${showPageRes.status} ${showPageRes.statusText}`,
     );
+  }
+
+  if (showPageRes.url !== post.postUrl) {
+    log.warn(`Redirected from ${post.postUrl} to ${showPageRes.url}`);
   }
 
   const showPageText = await showPageRes.text();

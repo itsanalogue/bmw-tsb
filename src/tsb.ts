@@ -217,7 +217,15 @@ export async function resolveAssociatedDocuments(
   nhtsaID: string,
   tsbID?: string,
 ): Promise<TsbDataStore['files'][0]> {
-  const getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
+  let getRes!: Response;
+  const maxRetries = 3;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
+    if (getRes.ok || getRes.status < 500 || getRes.status > 504) break;
+    if (attempt < maxRetries) {
+      await new Promise((res) => global.setTimeout(res, 5000));
+    }
+  }
   if (!getRes.ok)
     throw new Error(
       `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,

@@ -268,6 +268,19 @@ const FORUM_POSTS: ForumPost[] = [
       'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284236',
     contentPath: 'BMW-I20/2027.html',
   },
+  {
+    postId: '32860388',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2247465/bmw-ix3-service-bulletin-list?p=32860388',
+    contentPath: 'BMW-NA5/NEW.html',
+    reply: true,
+  },
+  {
+    postId: '32860389',
+    postUrl:
+      'https://g45.bimmerpost.com/forums/showthread/2247465/bmw-ix3-service-bulletin-list?p=32860389',
+    contentPath: 'BMW-NA5/RECENT.html',
+  },
 ];
 
 export const FORUM_MODEL_GROUPS = new Map<string, string[]>([

@@ -90,14 +90,14 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32306435',
     postUrl:
-      'https://g05.bimmerpost.com/beta/showthread/2202786/bmw-x5-service-bulletin-list?p=32306435',
+      'https://g05.bimmerpost.com/forums/showthread/2202786/bmw-x5-service-bulletin-list?p=32306435',
     contentPath: 'BMW-G05/NEW.html',
     reply: true,
   },
   {
     postId: '32306436',
     postUrl:
-      'https://g05.bimmerpost.com/beta/showthread/2202786/bmw-x5-service-bulletin-list?p=32306436',
+      'https://g05.bimmerpost.com/forums/showthread/2202786/bmw-x5-service-bulletin-list?p=32306436',
     contentPath: 'BMW-G05/RECENT.html',
   },
   {

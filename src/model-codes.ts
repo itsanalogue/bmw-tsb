@@ -373,6 +373,12 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
     },
   ],
   [
+    'NA5',
+    {
+      models: new Map([['IX3', { startYear: 2027, endYear: 2034 }]]),
+    },
+  ],
+  [
     'U10',
     {
       models: new Map([['X2', { startYear: 2023, endYear: 2033 }]]),

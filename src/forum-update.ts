@@ -287,6 +287,7 @@ export const FORUM_MODEL_GROUPS = new Map<string, string[]>([
   ['G87', ['G87']],
   ['G90', ['G90', 'G99']],
   ['I20', ['I20']],
+  ['NA5', ['NA5']],
   ['U11', ['U10', 'U11']],
 ]);
 

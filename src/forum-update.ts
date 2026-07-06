@@ -116,14 +116,14 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32307083',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202837/bmw-g20-g22-service-bulletin-list?p=32307083',
+      'https://g20.bimmerpost.com/forums/showthread/2202837/bmw-g20-g22-service-bulletin-list?p=32307083',
     contentPath: 'BMW-G20/NEW.html',
     reply: true,
   },
   {
     postId: '32307084',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202837/bmw-g20-g22-service-bulletin-list?p=32307084',
+      'https://g20.bimmerpost.com/forums/showthread/2202837/bmw-g20-g22-service-bulletin-list?p=32307084',
     contentPath: 'BMW-G20/RECENT.html',
   },
   {
@@ -168,14 +168,14 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32306452',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202787/bmw-g60-service-bulletin-list?p=32306452',
+      'https://g60.bimmerpost.com/forums/showthread/2202787/bmw-g60-service-bulletin-list?p=32306452',
     contentPath: 'BMW-G60/NEW.html',
     reply: true,
   },
   {
     postId: '32306455',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202787/bmw-g60-service-bulletin-list?p=32306455',
+      'https://g60.bimmerpost.com/forums/showthread/2202787/bmw-g60-service-bulletin-list?p=32306455',
     contentPath: 'BMW-G60/RECENT.html',
   },
   {
@@ -220,14 +220,14 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32307775',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202923/bmw-m5-service-bulletin-list?p=32307775',
+      'https://g90.bimmerpost.com/forums/showthread/2202923/bmw-m5-service-bulletin-list?p=32307775',
     contentPath: 'BMW-G90/NEW.html',
     reply: true,
   },
   {
     postId: '32307778',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202923/bmw-m5-service-bulletin-list?p=32307778',
+      'https://g90.bimmerpost.com/forums/showthread/2202923/bmw-m5-service-bulletin-list?p=32307778',
     contentPath: 'BMW-G90/RECENT.html',
   },
   {
@@ -475,7 +475,7 @@ export async function updatePostBimmerpost({
   const csrfToken = csrfTokenMatch[1];
 
   const existingPostMatch = new RegExp(
-    `<section[^>]*class="[^"]*postbit__content[^"]*"[^>]*data-postid="${post.postId}"[^>]*>([\\s\\S]*?)<\\/section>`,
+    `<div[^>]*class="[^"]*postbit__content[^"]*"[^>]*data-postid="${post.postId}"[^>]*>([\\s\\S]*?)<\\/div>`,
     'gms',
   ).exec(showPageText);
   if (existingPostMatch) {

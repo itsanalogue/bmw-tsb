@@ -699,15 +699,18 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
             cause?: { message: string; code?: string };
           };
           switch (errorWithCause.cause?.code) {
-            case 'UND_ERR_CLOSED':
             case 'UND_ERR_CONNECT_TIMEOUT':
+              canRetry = true;
+              retries = 2;
+              break;
+            case 'UND_ERR_CLOSED':
             case 'UND_ERR_SOCKET':
               canRetry = true;
               break;
           }
           if (canRetry && --retries > 0) {
             log.error(
-              `Retrying failed forum post update (${retries} retries remain)`,
+              `Retrying failed forum post ${post.reply ? 'reply' : 'update'} to ${post.postUrl} (${retries} retries remain)`,
               errorWithCause.cause ?? error,
             );
             //delay 15s on retries

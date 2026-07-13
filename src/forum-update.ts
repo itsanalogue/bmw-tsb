@@ -129,14 +129,14 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32306388',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202782/bmw-i4-service-bulletin-list?p=32306388',
+      'https://bmwi.bimmerpost.com/forums/showthread/2202782/bmw-i4-service-bulletin-list?p=32306388',
     contentPath: 'BMW-G26/NEW.html',
     reply: true,
   },
   {
     postId: '32306389',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202782/bmw-i4-service-bulletin-list?p=32306389',
+      'https://bmwi.bimmerpost.com/forums/showthread/2202782/bmw-i4-service-bulletin-list?p=32306389',
     contentPath: 'BMW-G26/RECENT.html',
   },
   {
@@ -246,26 +246,26 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32284224',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284224',
+      'https://bmwi.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284224',
     contentPath: 'BMW-I20/NEW.html',
     reply: true,
   },
   {
     postId: '32284226',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284226',
+      'https://bmwi.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284226',
     contentPath: 'BMW-I20/RECENT.html',
   },
   {
     postId: '32284235',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284235',
+      'https://bmwi.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284235',
     contentPath: 'BMW-I20/2026.html',
   },
   {
     postId: '32284236',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284236',
+      'https://bmwi.bimmerpost.com/forums/showthread/2200797/bmw-ix-service-bulletin-list?p=32284236',
     contentPath: 'BMW-I20/2027.html',
   },
   {

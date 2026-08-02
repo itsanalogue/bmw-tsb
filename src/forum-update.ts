@@ -142,14 +142,14 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32307803',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202927/bmw-g42-service-bulletin-list?p=32307803',
+      'https://g87.bimmerpost.com/beta/showthread/2202927/bmw-g42-service-bulletin-list?p=32307803',
     contentPath: 'BMW-G42/NEW.html',
     reply: true,
   },
   {
     postId: '32307804',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202927/bmw-g42-service-bulletin-list?p=32307804',
+      'https://g87.bimmerpost.com/beta/showthread/2202927/bmw-g42-service-bulletin-list?p=32307804',
     contentPath: 'BMW-G42/RECENT.html',
   },
   {
@@ -207,14 +207,14 @@ const FORUM_POSTS: ForumPost[] = [
   {
     postId: '32307797',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202925/bmw-m2-service-bulletin-list?p=32307797',
+      'https://g87.bimmerpost.com/beta/showthread/2202925/bmw-m2-service-bulletin-list?p=32307797',
     contentPath: 'BMW-G87/NEW.html',
     reply: true,
   },
   {
     postId: '32307799',
     postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202925/bmw-m2-service-bulletin-list?p=32307799',
+      'https://g87.bimmerpost.com/beta/showthread/2202925/bmw-m2-service-bulletin-list?p=32307799',
     contentPath: 'BMW-G87/RECENT.html',
   },
   {

@@ -701,7 +701,6 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
           switch (errorWithCause.cause?.code) {
             case 'UND_ERR_CONNECT_TIMEOUT':
               canRetry = true;
-              retries = Math.max(retries, 2);
               break;
             case 'UND_ERR_CLOSED':
             case 'UND_ERR_SOCKET':

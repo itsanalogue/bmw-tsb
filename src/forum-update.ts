@@ -587,6 +587,10 @@ export async function replyToThreadBimmerpost({
       showPageText,
     );
   if (!threadMatch) {
+    const replyPageFilePath = getOutputPath(
+      post.contentPath.replace('.html', '.replyto.html'),
+    );
+    await fs.promises.writeFile(replyPageFilePath, showPageText);
     throw new Error(`Failed to read thread ID for ${post.postUrl}`);
   }
   const threadId = threadMatch[1];

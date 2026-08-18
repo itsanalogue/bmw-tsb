@@ -230,6 +230,19 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-G42/RECENT.html',
   },
   {
+    postId: '32307091',
+    postUrl:
+      'https://www.7post.com/beta/showthread/2202838/bmw-g70-service-bulletin-list?p=32307091',
+    contentPath: 'BMW-G70/NEW.html',
+    reply: true,
+  },
+  {
+    postId: '32307092',
+    postUrl:
+      'https://www.7post.com/beta/showthread/2202838/bmw-g70-service-bulletin-list?p=32307092',
+    contentPath: 'BMW-G70/RECENT.html',
+  },
+  {
     postId: '32307780',
     postUrl:
       'https://g80.bimmerpost.com/beta/showthread/2202924/bmw-m3-m4-service-bulletin-list?p=32307780',
@@ -267,19 +280,6 @@ const FORUM_POSTS: ForumPost[] = [
     postUrl:
       'https://g45.bimmerpost.com/forums/showthread/2202784/bmw-x7-service-bulletin-list?p=32306416',
     contentPath: 'BMW-G07/RECENT.html',
-  },
-  {
-    postId: '32307091',
-    postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202838/bmw-g70-service-bulletin-list?p=32307091',
-    contentPath: 'BMW-G70/NEW.html',
-    reply: true,
-  },
-  {
-    postId: '32307092',
-    postUrl:
-      'https://g45.bimmerpost.com/forums/showthread/2202838/bmw-g70-service-bulletin-list?p=32307092',
-    contentPath: 'BMW-G70/RECENT.html',
   },
 ];
 
@@ -333,8 +333,17 @@ export const getModelNamesForForum = (forumCode: string) => {
   return [...modelNames].sort();
 };
 
-let bimmerpostAuthCookie: string | undefined = undefined;
-async function getBimmerpostAuthCookie() {
+function parseAuthCookie(cookie: string) {
+  const parts = cookie.split(';');
+  const csrf = parts.find((part) => part.startsWith('csrf='));
+  const domain = parts
+    .find((part) => part.startsWith('domain='))
+    ?.split('=')[1];
+  return csrf && domain ? { csrf, domain } : undefined;
+}
+
+const authCookies = new Map<string, string>();
+async function getBimmerpostAuthCookie(postUrl: string) {
   const username = process.env.FORUM_USERNAME;
   const password = process.env.FORUM_PASSWORD;
 
@@ -342,12 +351,14 @@ async function getBimmerpostAuthCookie() {
     return undefined;
   }
 
-  if (bimmerpostAuthCookie) {
-    return bimmerpostAuthCookie;
+  const postDomain = new URL(postUrl).hostname;
+  for (const [domain, cookie] of authCookies.entries()) {
+    if (postDomain.endsWith(domain)) {
+      return cookie;
+    }
   }
 
-  const loginUrl = 'https://g45.bimmerpost.com/forums/login.php';
-  let anonCsrfCookie: string | undefined = undefined;
+  const loginUrl = `https://${postDomain}/forums/login.php`;
 
   const loginPageRes = await fetch(loginUrl, {
     headers: {
@@ -355,12 +366,10 @@ async function getBimmerpostAuthCookie() {
     },
   });
 
-  const loginCookies = loginPageRes.headers.getSetCookie();
-  for (const cookie of loginCookies) {
-    if (cookie.startsWith('csrf=')) {
-      anonCsrfCookie = cookie.split(';')[0];
-    }
-  }
+  const anonCsrfCookie = loginPageRes.headers
+    .getSetCookie()
+    .map(parseAuthCookie)
+    .find((cookie) => cookie !== undefined);
   if (!anonCsrfCookie) {
     throw new Error(`Failed to read pre-auth CSRF cookie for login.`);
   }
@@ -380,7 +389,7 @@ async function getBimmerpostAuthCookie() {
       'User-Agent': USER_AGENT,
       'X-CSRF-Token': csrfToken,
       'Content-Type': 'application/json',
-      Cookie: anonCsrfCookie,
+      Cookie: anonCsrfCookie.csrf,
       Referer: loginUrl,
     },
     body: JSON.stringify({
@@ -412,21 +421,17 @@ async function getBimmerpostAuthCookie() {
     );
   }
 
-  let authCookie = '';
-  const setCookies = loginPostRes.headers.getSetCookie();
-  for (const cookie of setCookies) {
-    if (cookie.startsWith('csrf=')) {
-      authCookie = cookie.split(';')[0];
-    }
-  }
+  const authCookie = loginPostRes.headers
+    .getSetCookie()
+    .map(parseAuthCookie)
+    .find((cookie) => cookie !== undefined);
   if (!authCookie) {
     throw new Error(`Failed to read authenticated CSRF cookie for login.`);
   }
 
-  if (!bimmerpostAuthCookie) {
-    bimmerpostAuthCookie = authCookie;
-  }
-  return bimmerpostAuthCookie;
+  authCookies.set(authCookie.domain, authCookie.csrf);
+
+  return authCookie.csrf;
 }
 
 function getPostUrl(pageUrl: string) {
@@ -441,7 +446,7 @@ export async function updatePostBimmerpost({
   content: string;
   post: ForumPost;
 }) {
-  const authCookie = await getBimmerpostAuthCookie();
+  const authCookie = await getBimmerpostAuthCookie(post.postUrl);
   if (!authCookie) {
     log.info(`No credentials, skipping update of post ${post.postUrl}`);
     return false;
@@ -549,7 +554,7 @@ export async function replyToThreadBimmerpost({
   content: string;
   post: ForumPost;
 }) {
-  const authCookie = await getBimmerpostAuthCookie();
+  const authCookie = await getBimmerpostAuthCookie(post.postUrl);
   if (!authCookie) {
     log.info(`No credentials, skipping reply to post ${post.postUrl}`);
     return false;

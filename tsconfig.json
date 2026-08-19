@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["esnext"],
-    "module": "esnext",
+    "module": "nodenext",
     "outDir": "dist",
     "target": "es2021",
     "types": ["node"],
@@ -13,7 +13,7 @@
     "incremental": true,
     "inlineSources": false,
     "isolatedModules": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "preserveWatchOutput": true,

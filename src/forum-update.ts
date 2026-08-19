@@ -334,7 +334,7 @@ export const getModelNamesForForum = (forumCode: string) => {
 };
 
 function parseAuthCookie(cookie: string) {
-  const parts = cookie.split(';');
+  const parts = cookie.split(';').map((p) => p.trim());
   const csrf = parts.find((part) => part.startsWith('csrf='));
   const domain = parts
     .find((part) => part.startsWith('domain='))

@@ -351,14 +351,16 @@ async function getBimmerpostAuthCookie(postUrl: string) {
     return undefined;
   }
 
-  const postDomain = new URL(postUrl).hostname;
+  const postUrlParsed = new URL(postUrl);
+  const postUrlHostname = postUrlParsed.hostname;
+  const postUrlBasePath = postUrlParsed.pathname.split('/')[1];
   for (const [domain, cookie] of authCookies.entries()) {
-    if (postDomain.endsWith(domain)) {
+    if (postUrlHostname.endsWith(domain)) {
       return cookie;
     }
   }
 
-  const loginUrl = `https://${postDomain}/forums/login.php`;
+  const loginUrl = `https://${postUrlHostname}/${postUrlBasePath}/login.php`;
 
   const loginPageRes = await fetch(loginUrl, {
     headers: {
@@ -371,7 +373,9 @@ async function getBimmerpostAuthCookie(postUrl: string) {
     .map(parseAuthCookie)
     .find((cookie) => cookie !== undefined);
   if (!anonCsrfCookie) {
-    throw new Error(`Failed to read pre-auth CSRF cookie for login.`);
+    throw new Error(
+      `Failed to read pre-auth CSRF cookie for login page ${loginUrl}.`,
+    );
   }
 
   const loginPageText = await loginPageRes.text();
@@ -379,7 +383,7 @@ async function getBimmerpostAuthCookie(postUrl: string) {
     loginPageText,
   );
   if (!csrfTokenMatch) {
-    throw new Error(`Failed to read CSRF token from login page.`);
+    throw new Error(`Failed to read CSRF token from login page ${loginUrl}.`);
   }
   const csrfToken = csrfTokenMatch[1];
 

@@ -582,7 +582,7 @@ export async function getTsbs(
 
     const issueId = latest.tsbID ?? latest.nhtsaID;
 
-    const corrections = TSB_CORRECTIONS.get(issueId);
+    const corrections = TSB_CORRECTIONS.get(issueId.toUpperCase());
     if (corrections) {
       log.info(`Applying corrections for TSB ${issueId}`);
       for (const c of corrections) {

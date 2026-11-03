@@ -179,6 +179,19 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-G60/RECENT.html',
   },
   {
+    postId: '33051975',
+    postUrl:
+      'https://g65.bimmerpost.com/forums/showthread/2262388/bmw-g60-service-bulletin-list?p=33051975',
+    contentPath: 'BMW-G65/NEW.html',
+    reply: true,
+  },
+  {
+    postId: '33051977',
+    postUrl:
+      'https://g65.bimmerpost.com/forums/showthread/2262388/bmw-g60-service-bulletin-list?p=33051977',
+    contentPath: 'BMW-G65/RECENT.html',
+  },
+  {
     postId: '32307091',
     postUrl:
       'https://7.bimmerpost.com/forums/showthread/2202838/bmw-g70-service-bulletin-list?p=32307091',
@@ -295,6 +308,7 @@ export const FORUM_MODEL_GROUPS = new Map<string, string[]>([
   ['G42', ['G42']],
   ['G45', ['G45']],
   ['G60', ['G60', 'G61']],
+  ['G65', ['G65', 'G66', 'G95', 'G96']],
   ['G70', ['G70']],
   ['G80', ['G80', 'G81', 'G82', 'G83']],
   ['G87', ['G87']],

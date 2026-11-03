@@ -334,6 +334,18 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
     },
   ],
   [
+    'G95',
+    {
+      models: new Map([['X5M', { startYear: 2027, endYear: 2033 }]]),
+    },
+  ],
+  [
+    'G96',
+    {
+      models: new Map([['X6M', { startYear: 2027, endYear: 2033 }]]),
+    },
+  ],
+  [
     'G99',
     {
       models: new Map([

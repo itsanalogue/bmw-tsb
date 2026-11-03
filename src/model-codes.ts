@@ -285,7 +285,7 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
   [
     'G66',
     {
-      models: new Map([['X6', { startYear: 2027, endYear: 2033 }]]),
+      models: new Map([['X6', { startYear: 2028, endYear: 2034 }]]),
     },
   ],
 

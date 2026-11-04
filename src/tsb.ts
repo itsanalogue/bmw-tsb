@@ -104,6 +104,21 @@ const TSB_CORRECTIONS: Map<string, TsbModelCorrection[]> = new Map([
     ],
   ],
   [
+    'B410226',
+    [
+      {
+        type: 'remove',
+        model: 'X5',
+        years: ['2026'],
+      },
+      {
+        type: 'add',
+        model: 'X5',
+        years: ['2027'],
+      },
+    ],
+  ],
+  [
     'B650226',
     [
       {

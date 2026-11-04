@@ -387,7 +387,8 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
   [
     'NA5',
     {
-      models: new Map([['IX3', { startYear: 2027, endYear: 2034 }]]),
+      // should be 2027 start, but reporting has been wrong in 2026 calendar year
+      models: new Map([['IX3', { startYear: 2026, endYear: 2034 }]]),
     },
   ],
   [

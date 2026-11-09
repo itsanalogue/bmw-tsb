@@ -382,22 +382,29 @@ async function getBimmerpostAuthCookie(postUrl: string) {
     },
   });
 
-  const anonCsrfCookie = loginPageRes.headers
-    .getSetCookie()
+  const anonCookies = loginPageRes.headers.getSetCookie();
+  const anonCsrfCookie = anonCookies
     .map(parseAuthCookie)
     .find((cookie) => cookie !== undefined);
+
+  const loginPageText = await loginPageRes.text();
   if (!anonCsrfCookie) {
+    const loginPageFilePath = getOutputPath('login.html');
+    await fs.promises.writeFile(loginPageFilePath, loginPageText);
     throw new Error(
-      `Failed to read pre-auth CSRF cookie for login page ${loginUrl}.`,
+      `Failed to read pre-auth CSRF cookie from login page ${loginUrl}. (status: ${loginPageRes.status} cookies: ${anonCookies.join(' | ')})`,
     );
   }
 
-  const loginPageText = await loginPageRes.text();
   const csrfTokenMatch = /<meta\sname="csrf-token"\scontent="([^"]+)">/.exec(
     loginPageText,
   );
   if (!csrfTokenMatch) {
-    throw new Error(`Failed to read CSRF token from login page ${loginUrl}.`);
+    const loginPageFilePath = getOutputPath('login.html');
+    await fs.promises.writeFile(loginPageFilePath, loginPageText);
+    throw new Error(
+      `Failed to read CSRF token from meta tag on login page ${loginUrl}.`,
+    );
   }
   const csrfToken = csrfTokenMatch[1];
 
@@ -698,7 +705,9 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
               content,
               post,
             });
-            lastPostTs = new Date().getTime();
+            if (updated) {
+              lastPostTs = new Date().getTime();
+            }
           } else {
             updated = await updatePostBimmerpost({
               content,

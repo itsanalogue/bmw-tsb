@@ -516,6 +516,7 @@ export async function getTsbs(
       case 'InVeh-InApp-Comm':
       case 'In-Vehicle-In-App-Comm':
       case 'In-Veh-In-App-Comm':
+      case 'InVeh-In-App-Comm':
         groupKey = rec.nhtsaID;
         break;
     }

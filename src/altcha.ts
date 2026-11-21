@@ -44,6 +44,8 @@ export interface AltchaSolution {
 
 const argon2 = promisify(crypto.argon2);
 
+const FETCH_TIMEOUT_MS = 30_000;
+
 const ALTCHA_WIDGET_PATTERN = /<altcha-widget\b[^>]*>/i;
 
 export const isAltchaVerificationPage = (pageText: string) =>
@@ -100,13 +102,23 @@ export async function solveAltchaChallenge(
       tagLength: p.keyLength ?? 32,
     });
 
+  log.info(
+    `Solving altcha challenge (${p.algorithm}, memoryCost ${p.memoryCost}, cost ${p.cost}, counter mode ${counterMode}).`,
+  );
   const start = performance.now();
+  let lastProgress = start;
   // Derive a batch of counters at once; node's argon2 runs on the libuv
   // thread pool, so this uses several cores like the widget's web workers.
   for (let base = 0; base <= 0xffffffff; base += concurrency) {
     if (performance.now() - start > timeoutMs) {
       throw new Error(
         `Timed out solving altcha challenge after ${base} attempts (${timeoutMs}ms).`,
+      );
+    }
+    if (performance.now() - lastProgress > 10_000) {
+      lastProgress = performance.now();
+      log.info(
+        `Still solving altcha challenge: ${base} attempts in ${Math.round((lastProgress - start) / 1000)}s.`,
       );
     }
     const counters = Array.from({ length: concurrency }, (_, i) => base + i);
@@ -180,7 +192,9 @@ export async function passAltchaVerification({
   };
 
   try {
+    log.info(`Fetching altcha challenge ${challengeUrl}`);
     const challengeRes = await fetch(challengeUrl, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       headers: {
         'User-Agent': userAgent,
         Accept: 'application/json',
@@ -206,7 +220,9 @@ export async function passAltchaVerification({
     );
 
     // redirect: 'manual' so cookies set on a redirect response aren't lost.
+    log.info(`Submitting altcha solution to ${pageUrl}`);
     const verifyRes = await fetch(pageUrl, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       method: 'POST',
       redirect: 'manual',
       headers: {
@@ -225,6 +241,9 @@ export async function passAltchaVerification({
     diagnostics.verifyLocation = verifyRes.headers.get('location');
     diagnostics.verifySetCookieNames = setCookies.map(cookieName);
     diagnostics.verifyBody = verifyText.slice(0, 2000);
+    log.info(
+      `Altcha verification response: ${verifyRes.status} ${verifyText.slice(0, 200)}`,
+    );
 
     let verified = false;
     try {
@@ -245,6 +264,9 @@ export async function passAltchaVerification({
     return setCookies.map(cookiePair);
   } catch (error) {
     diagnostics.error = (error as Error).message;
+    log.warn(
+      `Altcha verification failed: ${(error as Error).message} (details in altcha-verification.json)`,
+    );
     throw error;
   } finally {
     await writeDiagnostics();

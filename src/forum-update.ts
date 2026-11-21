@@ -388,12 +388,15 @@ function buildForumRequestCookies(cookies: string[]) {
   return requestCookie.trim();
 }
 
+const FORUM_FETCH_TIMEOUT_MS = 30_000;
+
 async function fetchLoginPage(loginUrl: string) {
   const res = await fetch(loginUrl, {
     headers: {
       'User-Agent': USER_AGENT,
       Cookie: buildForumRequestCookies([]),
     },
+    signal: AbortSignal.timeout(FORUM_FETCH_TIMEOUT_MS),
   });
   const cookies = res.headers.getSetCookie();
   return {
@@ -739,7 +742,14 @@ async function checkForumLogin() {
     return;
   }
   const host = new URL(postUrl).hostname;
-  const authCookie = await getBimmerpostAuthCookie(postUrl);
+  log.info(`[FORUM_LOGIN_CHECK] Logging in to ${host}`);
+  let authCookie: string | undefined;
+  try {
+    authCookie = await getBimmerpostAuthCookie(postUrl);
+  } catch (error) {
+    log.error(`[FORUM_LOGIN_CHECK] Login to ${host} failed`, error);
+    throw error;
+  }
   if (!authCookie) {
     log.info(`[FORUM_LOGIN_CHECK] No credentials, skipped login to ${host}`);
     return;

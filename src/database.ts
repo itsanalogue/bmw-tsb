@@ -39,6 +39,8 @@ export const stateDir = path.resolve(
 export const sharedStorePath = path.join(stateDir, 'dataStore.json');
 const dataDir = path.join(repoRoot, 'data');
 const localStorePath = path.join(dataDir, 'sources.json');
+/** Cookies from passing the forum's altcha verification, reused across runs. */
+const humanVerifyPath = path.join(dataDir, 'human-verify.json');
 /** Pre-split store that held everything; only read to migrate `sources`. */
 const legacyStorePath = path.join(dataDir, 'dataStore.json');
 
@@ -109,4 +111,29 @@ export const saveDatabase = async (dataStore: TsbDataStore) => {
   await fs.promises.mkdir(dataDir, { recursive: true });
   await writeJson(localStorePath, { sources: dataStore.sources });
   await writeSharedStore(dataStore);
+};
+
+interface HumanVerifyStore {
+  cookies: string[];
+  obtainedAt: string;
+}
+
+/** Cached altcha verification cookies (`name=value`), or [] if none. */
+export const readHumanVerifyCookies = (): string[] => {
+  try {
+    return (
+      readJson<HumanVerifyStore | undefined>(humanVerifyPath, undefined)
+        ?.cookies ?? []
+    );
+  } catch {
+    return [];
+  }
+};
+
+export const writeHumanVerifyCookies = async (cookies: string[]) => {
+  await fs.promises.mkdir(dataDir, { recursive: true });
+  await writeJson(humanVerifyPath, {
+    cookies,
+    obtainedAt: new Date().toISOString(),
+  } satisfies HumanVerifyStore);
 };

@@ -1,9 +1,14 @@
 import fs from 'fs';
 import log from './log.js';
-import type { TsbDataStore } from './database.js';
+import {
+  readHumanVerifyCookies,
+  writeHumanVerifyCookies,
+  type TsbDataStore,
+} from './database.js';
 import { isDryRun, isForumLoginCheck, isMarkForumPosted } from './run-mode.js';
 import * as crypto from 'crypto';
 import { getOutputPath } from './output.js';
+import { isAltchaVerificationPage, passAltchaVerification } from './altcha.js';
 import { MODEL_CODE_MAP } from './model-codes.js';
 import { generateJSON } from '@tiptap/html';
 import { Bold } from '@tiptap/extension-bold';
@@ -357,11 +362,23 @@ function parseAuthCookie(cookie: string) {
   return csrf && domain ? { csrf, domain } : undefined;
 }
 
+// Cookies set by passing the altcha verification page; they replace HV_COOKIE.
+// Cached in data/ (restored by CI) and refreshed when the server challenges
+// again, which means the cached cookies stopped working.
+let humanVerifyCookies: string[] | undefined;
+const getHumanVerifyCookies = () =>
+  (humanVerifyCookies ??= readHumanVerifyCookies());
+
 function buildForumRequestCookies(cookies: string[]) {
   const hvCookie = process.env.HV_COOKIE;
 
   let requestCookie = '';
-  if (hvCookie && hvCookie.length > 0) {
+  const verifyCookies = getHumanVerifyCookies();
+  if (verifyCookies.length > 0) {
+    for (const cookie of verifyCookies) {
+      requestCookie += `${cookie}; `;
+    }
+  } else if (hvCookie && hvCookie.length > 0) {
     requestCookie += `human_verify=${hvCookie}; `;
   }
   for (const cookie of cookies) {
@@ -371,68 +388,22 @@ function buildForumRequestCookies(cookies: string[]) {
   return requestCookie.trim();
 }
 
-/**
- * Emulates the first step of the <altcha-widget> on the verification page:
- * fetch the challenge from `challenge="?altcha_get_challenge=1"` (resolved
- * against the login URL) using the same cookies a browser would hold, and
- * write the request/response details to out/altcha-challenge.json so the
- * challenge format (algorithm, parameters) can be inspected from CI.
- * Never throws; this is diagnostic only.
- */
-async function captureAltchaChallenge(
-  loginUrl: string,
-  verifyPageSetCookies: string[],
-) {
-  const challengeUrl = new URL('?altcha_get_challenge=1', loginUrl).toString();
-  // Cookies the verification page set (e.g. a session id) that a browser would
-  // send back with the widget's challenge request.
-  const verifyPageCookies = verifyPageSetCookies
-    .map((c) => c.split(';')[0].trim())
-    .filter((c) => c.includes('='));
-
-  const capture: Record<string, unknown> = {
-    capturedAt: new Date().toISOString(),
-    challengeUrl,
-    verifyPageSetCookies,
+async function fetchLoginPage(loginUrl: string) {
+  const res = await fetch(loginUrl, {
+    headers: {
+      'User-Agent': USER_AGENT,
+      Cookie: buildForumRequestCookies([]),
+    },
+  });
+  const cookies = res.headers.getSetCookie();
+  return {
+    res,
+    cookies,
+    csrfCookie: cookies
+      .map(parseAuthCookie)
+      .find((cookie) => cookie !== undefined),
+    text: await res.text(),
   };
-  try {
-    const res = await fetch(challengeUrl, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'application/json, */*',
-        Referer: loginUrl,
-        Cookie: buildForumRequestCookies(verifyPageCookies),
-      },
-    });
-    const body = await res.text();
-    let json: unknown;
-    try {
-      json = JSON.parse(body);
-    } catch {
-      json = undefined;
-    }
-    Object.assign(capture, {
-      status: res.status,
-      headers: Object.fromEntries(res.headers.entries()),
-      setCookies: res.headers.getSetCookie(),
-      json,
-      body: json === undefined ? body : undefined,
-    });
-  } catch (error) {
-    capture.error = (error as Error).message;
-  }
-
-  const captureText = JSON.stringify(capture, null, 2);
-  log.warn(`Altcha challenge capture:\n${captureText}`);
-  try {
-    const filePath = getOutputPath('altcha-challenge.json');
-    await fs.promises.mkdir(getOutputPath(''), { recursive: true });
-    await fs.promises.writeFile(filePath, captureText);
-  } catch (error) {
-    log.warn(
-      `Failed to write altcha challenge capture: ${(error as Error).message}`,
-    );
-  }
 }
 
 const authCookies = new Map<string, string>();
@@ -455,23 +426,28 @@ async function getBimmerpostAuthCookie(postUrl: string) {
 
   const loginUrl = `https://${postUrlHostname}/${postUrlBasePath}/login.php`;
 
-  const loginPageRes = await fetch(loginUrl, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      Cookie: buildForumRequestCookies([]),
-    },
-  });
-
-  const anonCookies = loginPageRes.headers.getSetCookie();
-  const anonCsrfCookie = anonCookies
-    .map(parseAuthCookie)
-    .find((cookie) => cookie !== undefined);
-
-  const loginPageText = await loginPageRes.text();
-  if (!anonCsrfCookie) {
-    if (/<altcha-widget/i.test(loginPageText)) {
-      await captureAltchaChallenge(loginUrl, anonCookies);
+  let loginPage = await fetchLoginPage(loginUrl);
+  if (!loginPage.csrfCookie && isAltchaVerificationPage(loginPage.text)) {
+    log.info(`Login page ${loginUrl} requires altcha verification; solving.`);
+    humanVerifyCookies = await passAltchaVerification({
+      pageUrl: loginUrl,
+      pageText: loginPage.text,
+      userAgent: USER_AGENT,
+      cookie: buildForumRequestCookies([]),
+    });
+    if (humanVerifyCookies.length > 0) {
+      await writeHumanVerifyCookies(humanVerifyCookies);
     }
+    loginPage = await fetchLoginPage(loginUrl);
+  }
+  const {
+    res: loginPageRes,
+    cookies: anonCookies,
+    csrfCookie: anonCsrfCookie,
+    text: loginPageText,
+  } = loginPage;
+
+  if (!anonCsrfCookie) {
     const loginPageFilePath = getOutputPath('login.html');
     await fs.promises.writeFile(loginPageFilePath, loginPageText);
     throw new Error(

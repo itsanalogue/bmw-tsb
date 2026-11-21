@@ -18,6 +18,16 @@ export const isStateSync = () =>
     ? isTruthy(process.env.STATE_SYNC)
     : isGithubActions();
 
+/**
+ * Log in to the forums even when no post needs updating, to exercise the
+ * login flow (e.g. the altcha verification) on every run. Skipped in DRY_RUN
+ * and MARK_FORUM_POSTED modes, which never call the forums.
+ */
+export const isForumLoginCheck = () =>
+  !isDryRun() &&
+  !isMarkForumPosted() &&
+  isTruthy(process.env.FORUM_LOGIN_CHECK);
+
 export const isAllowEmptyState = () => isTruthy(process.env.ALLOW_EMPTY_STATE);
 
 export const runModeLabel = () =>

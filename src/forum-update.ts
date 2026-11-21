@@ -1,7 +1,7 @@
 import fs from 'fs';
 import log from './log.js';
 import type { TsbDataStore } from './database.js';
-import { isDryRun, isMarkForumPosted } from './run-mode.js';
+import { isDryRun, isForumLoginCheck, isMarkForumPosted } from './run-mode.js';
 import * as crypto from 'crypto';
 import { getOutputPath } from './output.js';
 import { MODEL_CODE_MAP } from './model-codes.js';
@@ -753,10 +753,33 @@ export async function replyToThreadBimmerpost({
 }
 
 /**
+ * Log in to a single forum host (FORUM_LOGIN_CHECK), independent of whether
+ * any post changed. The auth cookie is cached, so later posts to that host
+ * reuse it.
+ */
+async function checkForumLogin() {
+  const postUrl = FORUM_POSTS[0]?.postUrl;
+  if (!postUrl) {
+    return;
+  }
+  const host = new URL(postUrl).hostname;
+  const authCookie = await getBimmerpostAuthCookie(postUrl);
+  if (!authCookie) {
+    log.info(`[FORUM_LOGIN_CHECK] No credentials, skipped login to ${host}`);
+    return;
+  }
+  log.info(`[FORUM_LOGIN_CHECK] Logged in to ${host}`);
+}
+
+/**
  * Send changed forum posts and return how many were changed: sent, or in
  * DRY_RUN / MARK_FORUM_POSTED mode, would have been sent / marked as posted.
  */
 export async function updateForumPosts(dataStore: TsbDataStore) {
+  if (isForumLoginCheck()) {
+    await checkForumLogin();
+  }
+
   let updateCount = 0;
   let retries = 4;
   let lastPostTs = 0;

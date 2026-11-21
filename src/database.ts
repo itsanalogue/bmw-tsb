@@ -14,14 +14,14 @@ export interface TsbDataStore {
   forumPostHashes: { [postId: string]: string };
 }
 
-const dataStorePath = () => {
-  const dataDir = path.resolve(new URL('../data', import.meta.url).pathname);
+const dataStorePath = (dir: string) => {
+  const dataDir = path.resolve(new URL(`../${dir}`, import.meta.url).pathname);
   const dataStorePath = path.join(dataDir, 'dataStore.json');
   return dataStorePath;
 };
 
 export const readDatabase = () => {
-  const dataStore = readJson<TsbDataStore>(dataStorePath(), {
+  const dataStore = readJson<TsbDataStore>(dataStorePath('data'), {
     files: {},
     forumPostHashes: {},
     sources: {},
@@ -43,5 +43,6 @@ export const readDatabase = () => {
 };
 
 export const saveDatabase = async (dataStore: TsbDataStore) => {
-  await writeJson(dataStorePath(), dataStore);
+  await writeJson(dataStorePath('data'), dataStore);
+  await writeJson(dataStorePath('out'), dataStore);
 };

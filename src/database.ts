@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { readJson, writeJson } from './storage.js';
 export interface TsbDataStore {
@@ -44,5 +45,8 @@ export const readDatabase = () => {
 
 export const saveDatabase = async (dataStore: TsbDataStore) => {
   await writeJson(dataStorePath('data'), dataStore);
+  fs.mkdirSync(path.resolve(new URL(`../out`, import.meta.url).pathname), {
+    recursive: true,
+  });
   await writeJson(dataStorePath('out'), dataStore);
 };

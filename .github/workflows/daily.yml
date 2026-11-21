@@ -67,7 +67,7 @@ jobs:
       - name: Run
         env:
           STATE_SYNC: 1
-          FORUM_LOGIN_CHECK: 1
+          FORUM_LOGIN_CHECK: 0
           FORUM_USERNAME: ${{ secrets.FORUM_USERNAME }}
           FORUM_PASSWORD: ${{ secrets.FORUM_PASSWORD }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

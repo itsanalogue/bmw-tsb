@@ -9973,8 +9973,18 @@
     ],
     "26V658000": [],
     "26V695000": [],
-    "26V731000": [],
-    "26V733000": []
+    "26V731000": [
+      {
+        "fileName": "RCRIT-26V731-2498.pdf",
+        "url": "https://static.nhtsa.gov/odi/rcl/2026/RCRIT-26V731-2498.pdf"
+      }
+    ],
+    "26V733000": [
+      {
+        "fileName": "RCRIT-26V733-6441.pdf",
+        "url": "https://static.nhtsa.gov/odi/rcl/2026/RCRIT-26V733-6441.pdf"
+      }
+    ]
   },
   "tsbDates": {
     "0016680200": "20220314",

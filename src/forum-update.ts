@@ -356,6 +356,20 @@ function parseAuthCookie(cookie: string) {
   return csrf && domain ? { csrf, domain } : undefined;
 }
 
+function buildForumRequestCookies(cookies: string[]) {
+  const hvCookie = process.env.HV_COOKIE;
+
+  let requestCookie = '';
+  if (hvCookie && hvCookie.length > 0) {
+    requestCookie += `human_verify=${hvCookie}; `;
+  }
+  for (const cookie of cookies) {
+    requestCookie += `${cookie}; `;
+  }
+
+  return requestCookie.trim();
+}
+
 const authCookies = new Map<string, string>();
 async function getBimmerpostAuthCookie(postUrl: string) {
   const username = process.env.FORUM_USERNAME;
@@ -379,6 +393,7 @@ async function getBimmerpostAuthCookie(postUrl: string) {
   const loginPageRes = await fetch(loginUrl, {
     headers: {
       'User-Agent': USER_AGENT,
+      Cookie: buildForumRequestCookies([]),
     },
   });
 
@@ -414,7 +429,7 @@ async function getBimmerpostAuthCookie(postUrl: string) {
       'User-Agent': USER_AGENT,
       'X-CSRF-Token': csrfToken,
       'Content-Type': 'application/json',
-      Cookie: anonCsrfCookie.csrf,
+      Cookie: buildForumRequestCookies([anonCsrfCookie.csrf]),
       Referer: loginUrl,
     },
     body: JSON.stringify({
@@ -480,7 +495,7 @@ export async function updatePostBimmerpost({
   const showPageRes = await fetch(post.postUrl, {
     headers: {
       'User-Agent': USER_AGENT,
-      Cookie: authCookie,
+      Cookie: buildForumRequestCookies([authCookie]),
     },
   });
   if (!showPageRes.ok) {
@@ -542,7 +557,7 @@ export async function updatePostBimmerpost({
     headers: {
       'User-Agent': USER_AGENT,
       'X-CSRF-Token': csrfToken,
-      Cookie: authCookie,
+      Cookie: buildForumRequestCookies([authCookie]),
       Referer: showPageRes.url,
     },
     body: postBody,
@@ -588,7 +603,7 @@ export async function replyToThreadBimmerpost({
   const showPageRes = await fetch(post.postUrl, {
     headers: {
       'User-Agent': USER_AGENT,
-      Cookie: authCookie,
+      Cookie: buildForumRequestCookies([authCookie]),
     },
   });
   if (!showPageRes.ok) {
@@ -642,7 +657,7 @@ export async function replyToThreadBimmerpost({
     headers: {
       'User-Agent': USER_AGENT,
       'X-CSRF-Token': csrfToken,
-      Cookie: authCookie,
+      Cookie: buildForumRequestCookies([authCookie]),
       Referer: showPageRes.url,
     },
     body: postBody,

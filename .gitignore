@@ -4,3 +4,4 @@ data/**
 dist/**
 out/**
 tsconfig.tsbuildinfo
+.state/

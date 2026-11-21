@@ -9,6 +9,11 @@ export const getOutputPath = (fileName: string) => {
   return outputPath;
 };
 
+/** Remove all output from earlier runs so stale content is never posted. */
+export const clearOutput = () => {
+  fs.rmSync(getOutputPath(''), { recursive: true, force: true });
+};
+
 export const createOutputWriter = (
   fileName: string,
   opts?: {

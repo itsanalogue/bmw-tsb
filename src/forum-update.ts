@@ -1,6 +1,7 @@
 import fs from 'fs';
 import log from './log.js';
-import { saveDatabase, type TsbDataStore } from './database.js';
+import type { TsbDataStore } from './database.js';
+import { isDryRun, isMarkForumPosted } from './run-mode.js';
 import * as crypto from 'crypto';
 import { getOutputPath } from './output.js';
 import { MODEL_CODE_MAP } from './model-codes.js';
@@ -684,6 +685,10 @@ export async function replyToThreadBimmerpost({
   }
 }
 
+/**
+ * Send changed forum posts and return how many were changed: sent, or in
+ * DRY_RUN / MARK_FORUM_POSTED mode, would have been sent / marked as posted.
+ */
 export async function updateForumPosts(dataStore: TsbDataStore) {
   let updateCount = 0;
   let retries = 4;
@@ -704,12 +709,29 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
         continue;
       }
 
+      const action = post.reply ? 'reply to' : 'update of';
+      if (isDryRun()) {
+        log.info(
+          `[DRY_RUN] Would send ${action} forum post ${post.postUrl} with ${post.contentPath}`,
+        );
+        updateCount++;
+        continue;
+      }
+      if (isMarkForumPosted()) {
+        log.info(
+          `[MARK_FORUM_POSTED] Marked ${action} forum post ${post.postUrl} with ${post.contentPath} as posted (no forum call)`,
+        );
+        dataStore.forumPostHashes[post.contentPath] = contentHash;
+        updateCount++;
+        continue;
+      }
+
       while (retries > 0) {
         try {
           let updated = false;
           if (post.reply) {
             const timeSincePost = new Date().getTime() - lastPostTs;
-            if (timeSincePost < 21000 && !process.env.UPDATE_HASHES) {
+            if (timeSincePost < 21000) {
               //forum restricts 1 post per 20 seconds.
               await new Promise((res) =>
                 global.setTimeout(res, 21000 - timeSincePost),
@@ -734,12 +756,6 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
               `${post.reply ? 'Replied to' : 'Updated'} forum post ${post.postUrl} with ${post.contentPath}`,
             );
             updateCount++;
-            // eslint-disable-next-line require-atomic-updates
-            dataStore.forumPostHashes[post.contentPath] = contentHash;
-          } else if (process.env.UPDATE_HASHES) {
-            log.info(
-              `Updated hash for ${post.reply ? 'reply to' : 'update of'} forum post ${post.postUrl} with ${post.contentPath}`,
-            );
             // eslint-disable-next-line require-atomic-updates
             dataStore.forumPostHashes[post.contentPath] = contentHash;
           }
@@ -768,10 +784,7 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
             continue;
           }
 
-          if (updateCount > 0) {
-            //Save the database if we made any successful posts before throwing
-            await saveDatabase(dataStore);
-          }
+          // Hashes of posts already sent are persisted by the caller.
           throw errorWithCause.cause ?? error;
         }
       }

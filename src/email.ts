@@ -9,6 +9,7 @@ import {
   tsbDateSortDesc,
 } from './util.js';
 import { isForumMatch } from './forum-update.js';
+import { isDryRun } from './run-mode.js';
 
 export interface MailMessage {
   subject: string;
@@ -109,6 +110,10 @@ export const addEmailEntry = (entries: string[], tsb: Tsb) => {
 };
 
 export function sendMessage(message: MailMessage): Promise<void> {
+  if (isDryRun()) {
+    log.info(`[DRY_RUN] Would send email: ${message.subject}`);
+    return Promise.resolve();
+  }
   if (!emailConfig.to || !emailConfig.username || !emailConfig.password) {
     log.warn(
       `EMAIL SERVER NOT CONFIGURED.\n\nSUBJECT: ${message.subject}\n\n${message.bodyText}`,

@@ -16,6 +16,9 @@ on:
         type: boolean
 env:
   VOLTA_FEATURE_PNPM: 1
+concurrency:
+  group: daily-run
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -56,8 +59,14 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Configure git identity for state commits
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Run
         env:
+          STATE_SYNC: 1
           FORUM_USERNAME: ${{ secrets.FORUM_USERNAME }}
           FORUM_PASSWORD: ${{ secrets.FORUM_PASSWORD }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

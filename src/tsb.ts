@@ -54,6 +54,14 @@ const NHTSA_RECALL_SOURCE_ROOT = 'https://static.nhtsa.gov/odi/ffdd/rcl/';
 const NHTSA_TSB_ISSUES_ROOT =
   'https://api.nhtsa.gov/safetyIssues/byNhtsaId?name=&nhtsaId=';
 
+/** Limit for small NHTSA API calls; without it a stalled response hangs ~5 min. */
+const NHTSA_API_TIMEOUT_MS = 30_000;
+/** Limit for downloading a source zip (the largest is ~40 MB). */
+const NHTSA_DOWNLOAD_TIMEOUT_MS = 300_000;
+
+const isTimeoutError = (error: unknown) =>
+  (error as { name?: string } | undefined)?.name === 'TimeoutError';
+
 export interface TsbTextRow {
   nhtsaID: string;
   nhtsaDate: string;
@@ -262,20 +270,9 @@ export async function resolveAssociatedDocuments(
   nhtsaID: string,
   tsbID?: string,
 ): Promise<TsbDataStore['files'][0]> {
-  let getRes!: Response;
+  log.info(`Fetching associated documents for NHTSA ID ${nhtsaID}`);
   const maxRetries = 3;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`);
-    if (getRes.ok || getRes.status < 500 || getRes.status > 504) break;
-    if (attempt < maxRetries) {
-      await new Promise((res) => global.setTimeout(res, 5000));
-    }
-  }
-  if (!getRes.ok)
-    throw new Error(
-      `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,
-    );
-  const data = (await getRes.json()) as {
+  let data!: {
     results: {
       recalls?: {
         nhtsaCampaignNumber: string;
@@ -291,6 +288,42 @@ export async function resolveAssociatedDocuments(
       }[];
     }[];
   };
+  for (let attempt = 0; ; attempt++) {
+    let failure: string;
+    try {
+      const getRes = await fetch(`${NHTSA_TSB_ISSUES_ROOT}${nhtsaID}`, {
+        signal: AbortSignal.timeout(NHTSA_API_TIMEOUT_MS),
+      });
+      if (getRes.ok) {
+        data = (await getRes.json()) as typeof data;
+        break;
+      }
+      if (getRes.status < 500 || getRes.status > 504) {
+        throw new Error(
+          `Failed to download TSB safety issues for ${nhtsaID}: ${getRes.status}`,
+        );
+      }
+      failure = `status ${getRes.status}`;
+    } catch (error) {
+      // Retry timeouts and network failures (fetch throws TypeError); rethrow the rest.
+      if (isTimeoutError(error)) {
+        failure = `no response after ${NHTSA_API_TIMEOUT_MS / 1000}s`;
+      } else if (error instanceof TypeError) {
+        failure = `${error.message} (${(error.cause as Error | undefined)?.message ?? 'no cause'})`;
+      } else {
+        throw error;
+      }
+    }
+    if (attempt >= maxRetries) {
+      throw new Error(
+        `Failed to download TSB safety issues for ${nhtsaID}: ${failure}`,
+      );
+    }
+    log.warn(
+      `Retrying associated documents for NHTSA ID ${nhtsaID} after ${failure} (${maxRetries - attempt} retries remain)`,
+    );
+    await new Promise((res) => global.setTimeout(res, 5000));
+  }
 
   const correction = NHTSA_CORRECTIONS.get(nhtsaID);
   if (correction && correction.tsbID) {
@@ -354,7 +387,15 @@ export async function readTsbFiles(
     let download = !fs.existsSync(jsonPath);
 
     if (!download && source.active) {
-      const head = await fetch(zipUrl, { method: 'HEAD' });
+      const head = await fetch(zipUrl, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(NHTSA_API_TIMEOUT_MS),
+      }).catch((error: unknown) => {
+        throw new Error(
+          `Refresh source check for ${baseName} failed: ${isTimeoutError(error) ? `no response after ${NHTSA_API_TIMEOUT_MS / 1000}s` : (error as Error).message}`,
+          { cause: error },
+        );
+      });
       if (head.ok) {
         const lastMod =
           head.headers.get('last-modified') ?? head.headers.get('date');
@@ -383,7 +424,9 @@ export async function readTsbFiles(
       let retries = 3;
       while (retries > 0) {
         try {
-          const getRes = await fetch(zipUrl);
+          const getRes = await fetch(zipUrl, {
+            signal: AbortSignal.timeout(NHTSA_DOWNLOAD_TIMEOUT_MS),
+          });
           if (!getRes.ok)
             throw new Error(`Failed to download ${zipUrl}: ${getRes.status}`);
 
@@ -396,7 +439,7 @@ export async function readTsbFiles(
           await fsPromises.writeFile(zipPath, buffer);
           break;
         } catch (error) {
-          let canRetry = false;
+          let canRetry = isTimeoutError(error);
           const errorWithCause = error as Error & {
             cause?: { message: string; code?: string };
           };

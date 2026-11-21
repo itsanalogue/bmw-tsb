@@ -1,6 +1,7 @@
 import { getTsbs, readTsbFiles, type Tsb } from './tsb.js';
 import { readDatabase, saveDatabase, snapshotSharedStore } from './database.js';
 import {
+  assertSafeRunMode,
   isDryRun,
   isMarkForumPosted,
   isStateSync,
@@ -73,6 +74,7 @@ async function getTsbStats(tsbs: Tsb[], make: string, models: string[]) {
 
 export async function processTsbs(make: string, models: string[]) {
   logRunMode();
+  assertSafeRunMode();
   await promptForMissingCredentials();
   const sync = isStateSync();
   const push = sync && !isDryRun();

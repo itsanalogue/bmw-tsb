@@ -121,10 +121,12 @@ interface HumanVerifyStore {
 /** Cached altcha verification cookies (`name=value`), or [] if none. */
 export const readHumanVerifyCookies = (): string[] => {
   try {
-    return (
+    const cookies =
       readJson<HumanVerifyStore | undefined>(humanVerifyPath, undefined)
-        ?.cookies ?? []
-    );
+        ?.cookies ?? [];
+    // One value per name (last wins), matching how they are resolved when set.
+    const byName = new Map(cookies.map((c) => [c.split('=')[0], c]));
+    return [...byName.values()];
   } catch {
     return [];
   }

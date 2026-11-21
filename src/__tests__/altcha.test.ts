@@ -5,6 +5,7 @@ import {
   encodeAltchaPayload,
   getAltchaChallengeUrl,
   isAltchaVerificationPage,
+  resolveSetCookies,
   solveAltchaChallenge,
 } from '../altcha.js';
 
@@ -73,4 +74,22 @@ test('getAltchaChallengeUrl resolves the widget challenge attribute', () => {
   expect(
     getAltchaChallengeUrl(page, 'https://g45.bimmerpost.com/forums/login.php'),
   ).toBe('https://g45.bimmerpost.com/forums/login.php?altcha_get_challenge=1');
+});
+
+test('resolveSetCookies keeps one value per name like a browser jar', () => {
+  expect(
+    resolveSetCookies([
+      'human_verify=deleted; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/',
+      'human_verify=abc; expires=Fri, 01 Jan 2100 00:00:00 GMT; path=/; domain=.bimmerpost.com',
+    ]),
+  ).toEqual(['human_verify=abc']);
+  expect(
+    resolveSetCookies([
+      'human_verify=first; path=/',
+      'human_verify=second; path=/; domain=.bimmerpost.com',
+    ]),
+  ).toEqual(['human_verify=second']);
+  expect(
+    resolveSetCookies(['human_verify=abc; path=/', 'human_verify=; Max-Age=0']),
+  ).toEqual([]);
 });

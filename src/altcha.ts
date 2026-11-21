@@ -152,8 +152,78 @@ export const encodeAltchaPayload = (
     }),
   ).toString('base64');
 
-const cookiePair = (setCookie: string) => setCookie.split(';')[0].trim();
-const cookieName = (setCookie: string) => cookiePair(setCookie).split('=')[0];
+export interface ParsedSetCookie {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: string;
+  maxAge?: number;
+}
+
+export const parseSetCookie = (setCookie: string): ParsedSetCookie => {
+  const [pair, ...attrs] = setCookie.split(';').map((p) => p.trim());
+  const eq = pair.indexOf('=');
+  const cookie: ParsedSetCookie = {
+    name: eq >= 0 ? pair.slice(0, eq) : pair,
+    value: eq >= 0 ? pair.slice(eq + 1) : '',
+  };
+  for (const attr of attrs) {
+    const [key, ...rest] = attr.split('=');
+    const value = rest.join('=');
+    switch (key.toLowerCase()) {
+      case 'domain':
+        cookie.domain = value.toLowerCase().replace(/^\./, '');
+        break;
+      case 'path':
+        cookie.path = value;
+        break;
+      case 'expires':
+        cookie.expires = value;
+        break;
+      case 'max-age':
+        cookie.maxAge = Number(value);
+        break;
+    }
+  }
+  return cookie;
+};
+
+const isExpired = (cookie: ParsedSetCookie, now = Date.now()) =>
+  (cookie.maxAge !== undefined && cookie.maxAge <= 0) ||
+  (cookie.maxAge === undefined &&
+    cookie.expires !== undefined &&
+    Date.parse(cookie.expires) <= now) ||
+  cookie.value === '' ||
+  cookie.value === 'deleted';
+
+/**
+ * Reduce Set-Cookie headers to the `name=value` pairs to send back, the way a
+ * browser jar would: a later cookie with the same name replaces an earlier
+ * one, and expired/cleared cookies (e.g. PHP's `deleted` value) remove it.
+ * One value per name, since sending duplicates leaves the server to guess.
+ */
+export const resolveSetCookies = (setCookies: string[]) => {
+  const jar = new Map<string, string>();
+  for (const cookie of setCookies.map(parseSetCookie)) {
+    if (isExpired(cookie)) {
+      jar.delete(cookie.name);
+    } else {
+      jar.set(cookie.name, `${cookie.name}=${cookie.value}`);
+    }
+  }
+  return [...jar.values()];
+};
+
+/** Set-Cookie attributes for diagnostics, without the cookie value. */
+const describeSetCookie = (setCookie: string) => {
+  const { value, ...rest } = parseSetCookie(setCookie);
+  return {
+    ...rest,
+    valueLength: value.length,
+    expired: isExpired({ value, ...rest }),
+  };
+};
 
 /**
  * Solve the altcha verification page at `pageUrl` and return the cookies
@@ -239,7 +309,7 @@ export async function passAltchaVerification({
     const setCookies = verifyRes.headers.getSetCookie();
     diagnostics.verifyStatus = verifyRes.status;
     diagnostics.verifyLocation = verifyRes.headers.get('location');
-    diagnostics.verifySetCookieNames = setCookies.map(cookieName);
+    diagnostics.verifySetCookies = setCookies.map(describeSetCookie);
     diagnostics.verifyBody = verifyText.slice(0, 2000);
     log.info(
       `Altcha verification response: ${verifyRes.status} ${verifyText.slice(0, 200)}`,
@@ -258,10 +328,11 @@ export async function passAltchaVerification({
         `Altcha verification was not accepted (status: ${verifyRes.status}): ${verifyText.slice(0, 500)}`,
       );
     }
+    const cookies = resolveSetCookies(setCookies);
     log.info(
-      `Passed altcha verification; received cookies: ${setCookies.map(cookieName).join(', ') || '(none)'}`,
+      `Passed altcha verification; received ${setCookies.length} Set-Cookie header(s): ${JSON.stringify(setCookies.map(describeSetCookie))}. Using: ${cookies.map((c) => c.split('=')[0]).join(', ') || '(none)'}`,
     );
-    return setCookies.map(cookiePair);
+    return cookies;
   } catch (error) {
     diagnostics.error = (error as Error).message;
     log.warn(

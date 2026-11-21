@@ -62,6 +62,7 @@ jobs:
           BBPASSWORD: ${{ secrets.BBPASSWORD }}
           FORUM_USERNAME: ${{ secrets.FORUM_USERNAME }}
           FORUM_PASSWORD: ${{ secrets.FORUM_PASSWORD }}
+          HV_COOKIE: ${{secrets.HV_COOKIE}}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}

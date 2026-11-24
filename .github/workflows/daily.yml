@@ -46,7 +46,7 @@ jobs:
           path: data
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'mise.toml'
 

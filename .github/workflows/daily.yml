@@ -48,7 +48,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version-file: 'package.json'
+          node-version-file: 'mise.toml'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -104,7 +104,7 @@ jobs:
 
       - name: Upload artifact
         if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: 'out/gh-pages'
 

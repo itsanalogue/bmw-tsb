@@ -49,9 +49,5 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
-  },
-  "volta": {
-    "node": "24.16.0",
-    "pnpm": "10.18.1"
   }
 }

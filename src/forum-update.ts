@@ -275,6 +275,19 @@ const FORUM_POSTS: ForumPost[] = [
     contentPath: 'BMW-I20/2027.html',
   },
   {
+    postId: '33083351',
+    postUrl:
+      'https://g50.bimmerpost.com/forums/showthread/2264736/bmw-i3-service-bulletin-list?p=33083351',
+    contentPath: 'BMW-NA0/NEW.html',
+    reply: true,
+  },
+  {
+    postId: '33083352',
+    postUrl:
+      'https://g50.bimmerpost.com/forums/showthread/2264736/bmw-i3-service-bulletin-list?p=33083352',
+    contentPath: 'BMW-NA0/RECENT.html',
+  },
+  {
     postId: '32860388',
     postUrl:
       'https://g45.bimmerpost.com/forums/showthread/2247465/bmw-ix3-service-bulletin-list?p=32860388',
@@ -320,6 +333,7 @@ export const FORUM_MODEL_GROUPS = new Map<string, string[]>([
   ['G87', ['G87']],
   ['G90', ['G90', 'G99']],
   ['I20', ['I20']],
+  ['NA0', ['NA0']],
   ['NA5', ['NA5']],
   ['U11', ['U10', 'U11']],
 ]);

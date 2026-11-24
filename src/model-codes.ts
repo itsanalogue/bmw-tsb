@@ -58,6 +58,7 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
       models: new Map([
         ['228I', { startYear: 2022, endYear: 2028 }],
         ['M235I', { startYear: 2022, endYear: 2028 }],
+        ['M235 XDRIVE', { startYear: 2025, endYear: 2030 }],
       ]),
     },
   ],
@@ -279,7 +280,10 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
   [
     'G65',
     {
-      models: new Map([['X5', { startYear: 2027, endYear: 2033 }]]),
+      models: new Map([
+        ['X5', { startYear: 2027, endYear: 2033 }],
+        ['IX5', { startYear: 2027, endYear: 2033 }],
+      ]),
     },
   ],
   [
@@ -382,6 +386,12 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
         ['IX M60', { startYear: 2021, endYear: 2028, strictMatch: true }],
         ['IX XDRIVE45', { startYear: 2021, endYear: 2028, strictMatch: true }],
       ]),
+    },
+  ],
+  [
+    'NA0',
+    {
+      models: new Map([['I3', { startYear: 2027, endYear: 2034 }]]),
     },
   ],
   [

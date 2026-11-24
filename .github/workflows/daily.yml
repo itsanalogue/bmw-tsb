@@ -106,6 +106,7 @@ jobs:
         if: ${{ hashFiles('out/gh-pages/new.html') != '' || inputs.publish-pages }}
         uses: actions/upload-pages-artifact@v5
         with:
+          name: github-pages
           path: 'out/gh-pages'
 
       - name: Deploy to GitHub Pages

@@ -8244,6 +8244,66 @@
         "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040077-0001.pdf"
       }
     ],
+    "11040079": [
+      {
+        "fileName": "MC-11040079-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040079-0001.pdf"
+      }
+    ],
+    "11040183": [
+      {
+        "fileName": "MC-11040183-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040183-0001.pdf"
+      }
+    ],
+    "11040184": [
+      {
+        "fileName": "MC-11040184-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040184-0001.pdf"
+      }
+    ],
+    "11040185": [
+      {
+        "fileName": "MC-11040185-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040185-0001.pdf"
+      }
+    ],
+    "11040186": [
+      {
+        "fileName": "MC-11040186-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040186-0001.pdf"
+      }
+    ],
+    "11040187": [
+      {
+        "fileName": "MC-11040187-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040187-0001.pdf"
+      }
+    ],
+    "11040188": [
+      {
+        "fileName": "MC-11040188-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040188-0001.pdf"
+      }
+    ],
+    "11040189": [
+      {
+        "fileName": "MC-11040189-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040189-0001.pdf"
+      }
+    ],
+    "11040190": [
+      {
+        "fileName": "MC-11040190-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040190-0001.pdf"
+      }
+    ],
+    "11040191": [
+      {
+        "fileName": "MC-11040191-0001.pdf",
+        "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11040191-0001.pdf"
+      }
+    ],
     "17V719000": [
       {
         "fileName": "RCRIT-17V719-9160.pdf",
@@ -12437,9 +12497,9 @@
     "sb23-01TMS": "20230717"
   },
   "forumPostHashes": {
-    "BMW-G05/NEW.html": "a91fc0ef7fa6b86d1d228efe4ff864404fa01294",
+    "BMW-G05/NEW.html": "e7a0b11289889355eab68400a756bda911138177",
     "BMW-G05/NEW.txt": "21ead62d1d57abddf06817473c768b432c08325b",
-    "BMW-G05/RECENT.html": "27a75fe956ced90ca0192548fbb330472438faa6",
+    "BMW-G05/RECENT.html": "92df1fac0c9a2f587ed72ec060f9cf35cd697ea9",
     "BMW-G05/RECENT.txt": "126f17fd575b3d0034ba8d2df16d064454e3dd17",
     "BMW-G07/NEW.html": "36b6e9335ebf40c707f1a4ffbe5a757a3c2f4257",
     "BMW-G07/NEW.txt": "cf5f1ea46973c0755f531c0eb9afdb7b4a4d5666",
@@ -12504,9 +12564,9 @@
     "BMW-U11/NEW.txt": "720ba80dad0a28d18276d848fb0d03a553e35831",
     "BMW-U11/RECENT.html": "c1a102492fcfa853b0a361f9e581a753bd83d72e",
     "BMW-U11/RECENT.txt": "0b9864af9aa24a413c3ea4a878760fd518fbf103",
-    "BMW/ALL.html": "e3b22b06f584b7e7be5235af300a98b6fb8cb322",
+    "BMW/ALL.html": "d1e41352d820694babaf571ac1c518b92d72fb9a",
     "BMW/ALL.txt": "c924f156adeb9723a5e4a670d404eac470e55521",
-    "BMW/NEW.html": "6f4f2a2aa330a33c484bf66e1ce806c819f6c747",
+    "BMW/NEW.html": "2c4d279b5e4d9fc1d2830deba71d2e73fa41fef6",
     "BMW/NEW.txt": "7d78edce25967e4eb3faa179793062f9e5525a46"
   }
 }

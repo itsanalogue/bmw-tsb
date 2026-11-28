@@ -193,6 +193,14 @@ const TSB_CORRECTIONS: Map<string, TsbModelCorrection[]> = new Map([
   ],
 ]);
 
+/** NHTSA data mixes case in bulletin IDs (e.g. b652226 vs B652226); treat them as case-insensitive. */
+export const normalizeTsbID = (tsbID: string | undefined) =>
+  tsbID?.toUpperCase();
+
+/** BMW Motorrad bulletins are excluded from the BMW make. */
+const isValidForMake = (rec: TsbTextRow, make: string) =>
+  rec.make === make && !(make === 'BMW' && rec.tsbID?.startsWith('M'));
+
 const TSB_SOURCES: TsbDataStore['sources'][0][] = [
   // {
   //   type: 'tsb',
@@ -341,7 +349,11 @@ export async function resolveAssociatedDocuments(
 
   const mcs = data.results.flatMap((r) =>
     (r.manufacturerCommunications ?? [])
-      .filter((c) => c.manufacturerCommunicationNumber === tsbID)
+      .filter(
+        (c) =>
+          normalizeTsbID(c.manufacturerCommunicationNumber) ===
+          normalizeTsbID(tsbID),
+      )
       .flatMap((c) => c.associatedDocuments),
   );
   dataStore.files[nhtsaID].push(
@@ -504,15 +516,16 @@ export async function readTsbFiles(
             }
             const key = h as keyof TsbTextRow;
             const raw = (cols[i] ?? '').trim();
-            const value = key === 'summary' ? sanitizeSummary(raw) : raw;
+            const value =
+              key === 'summary'
+                ? sanitizeSummary(raw)
+                : key === 'tsbID'
+                  ? raw.toUpperCase()
+                  : raw;
             (obj as TsbTextRow)[key] = value;
           });
 
-          let validForMake = obj.make === make;
-          if (make === 'BMW' && obj.tsbID && obj.tsbID.startsWith('M')) {
-            validForMake = false;
-          }
-          if (validForMake) {
+          if (isValidForMake(obj as TsbTextRow, make)) {
             fileRecords.push(obj as TsbTextRow);
           }
         }
@@ -524,8 +537,12 @@ export async function readTsbFiles(
         }
       }
     }
+    // Normalize again here: the cached JSON may predate tsbID normalization.
     for (const record of fileRecords) {
-      records.push(record);
+      const rec = { ...record, tsbID: normalizeTsbID(record.tsbID) };
+      if (isValidForMake(rec, make)) {
+        records.push(rec);
+      }
     }
     log.info(
       `Read ${fileRecords.length} records from ${baseName} dated ${source.cacheDate}`,
@@ -553,13 +570,14 @@ export async function getTsbs(
     }
 
     let groupKey = rec.tsbID ?? rec.nhtsaID;
+    // Handle reused TSB IDs (mainly in-vehicle comms)
     switch (groupKey) {
-      case 'InVehicle-InApp-Comm':
-      case 'In-Vehicle-InApp-Comm':
-      case 'InVeh-InApp-Comm':
-      case 'In-Vehicle-In-App-Comm':
-      case 'In-Veh-In-App-Comm':
-      case 'InVeh-In-App-Comm':
+      case 'INVEHICLE-INAPP-COMM':
+      case 'IN-VEHICLE-INAPP-COMM':
+      case 'INVEH-INAPP-COMM':
+      case 'IN-VEHICLE-IN-APP-COMM':
+      case 'IN-VEH-IN-APP-COMM':
+      case 'INVEH-IN-APP-COMM':
         groupKey = rec.nhtsaID;
         break;
     }
@@ -658,7 +676,7 @@ export async function getTsbs(
 
     const issueId = latest.tsbID ?? latest.nhtsaID;
 
-    const corrections = TSB_CORRECTIONS.get(issueId.toUpperCase());
+    const corrections = TSB_CORRECTIONS.get(issueId);
     if (corrections) {
       log.info(`Applying corrections for TSB ${issueId}`);
       for (const c of corrections) {

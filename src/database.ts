@@ -50,6 +50,20 @@ const sortKeys = <T extends object>(obj: T): T =>
     Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   ) as T;
 
+/** Merge tsbDates keys that differ only by case, keeping the latest date. */
+export const normalizeTsbDates = (
+  tsbDates: TsbDataStore['tsbDates'],
+): TsbDataStore['tsbDates'] => {
+  const merged: TsbDataStore['tsbDates'] = {};
+  for (const [id, date] of Object.entries(tsbDates)) {
+    const key = id.toUpperCase();
+    if (!merged[key] || date.localeCompare(merged[key]) > 0) {
+      merged[key] = date;
+    }
+  }
+  return merged;
+};
+
 export const readSharedStore = (): SharedDataStore => {
   const store = readJson<Partial<SharedDataStore> | undefined>(
     sharedStorePath,
@@ -64,7 +78,7 @@ export const readSharedStore = (): SharedDataStore => {
   }
   const shared: SharedDataStore = {
     files: store?.files ?? {},
-    tsbDates: store?.tsbDates ?? {},
+    tsbDates: normalizeTsbDates(store?.tsbDates ?? {}),
     forumPostHashes: store?.forumPostHashes ?? {},
   };
   if (

@@ -863,6 +863,10 @@ export async function updateForumPosts(dataStore: TsbDataStore) {
             case 'UND_ERR_SOCKET':
               canRetry = true;
               break;
+            case 'UND_ERR_INFO':
+              // HTTP/2 GOAWAY: server is closing the session; safe to retry on a new connection
+              canRetry = /GOAWAY/i.test(errorWithCause.cause?.message ?? '');
+              break;
           }
           if (canRetry && --retries > 0) {
             log.error(

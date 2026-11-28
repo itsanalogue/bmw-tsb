@@ -317,6 +317,7 @@ export const MODEL_CODE_MAP = new Map<string, ModelDefinition>([
     {
       models: new Map([
         ['M4', { startYear: 2021, endYear: 2027, strictMatch: true }],
+        ['M4 COMPETITION XDRIVE', { startYear: 2021, endYear: 2027 }],
       ]),
     },
   ],
